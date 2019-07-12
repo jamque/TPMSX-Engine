@@ -1,6 +1,11 @@
 # TPMSX-Engine
 Assembler MSX Z80 Code for ROM Games by ThePetsMode
 
+## Notes
+- Use https://github.com/Fubukimaru/asMSX as Assembler.
+- Comments are in mixed language, sometimes in Català, Castellano and English.
+- This code plays a PT3 file and show a Blue screen with some colors at the bottom of the screen. Put some PT3 music file in DATA/MUSIC to compile.
+
 What's new:
 ---
 
