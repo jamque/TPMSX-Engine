@@ -1,0 +1,9 @@
+; Posicions de memoria de Screen 2
+
+VRM_PAT equ 	0000h	; Tile Patterns
+VRM_COL equ 	2000h	; Tile Colors
+VRM_MAP	equ	1800h	; Tile Map (Screen)
+VRM_SPA	equ	1B00h	; Sprite Attributes (Y,X,PatNum,Color)
+VRM_SPP	equ	3800h	; Sprite Patterns
+
+

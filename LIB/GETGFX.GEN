@@ -1,0 +1,42 @@
+; GETGFX
+; Copia un grafico almacenado en memoria a otra posicion de memoria.
+; El grafico ha de tener los dos primero bytes su tamaño
+; Primer byte: Alto
+; Segun byte: Ancho
+; Resto de bytes: Datos, números de tiles
+; Entrada:
+; 	IX -> direccion de memoria del GFX (2 BYTES iniciales altura y anchura)
+; 	IY ->	direccion RAM del BUFFER origen
+; Salida:
+;	-
+; Modifica:
+;	BC,DE,IX,IY
+; Dependencias:
+; -
+GETGFX:
+	; Cargo cuantas lineas
+	ld	A,[IX]
+	ld	B,A	; Preparo contador
+	inc	IX
+	; Cargo cuantas tiles de ancho
+	ld	A,[IX]
+	ld	E,A	
+	inc	IX
+@@LOOPFILA:
+	push	BC
+	ld	B,E	; Numero de tiles
+@@LOOPTILE:
+	ld	A,[IY]	; Copio una tile
+	ld	[IX],A
+	inc	IX
+	inc	IY
+	djnz	@@LOOPTILE
+	ld	A,32
+	sub	E	; 32-Numero de tiles es el incremento de IY
+	ld	C,A
+	add	IY,BC
+	pop	BC
+	djnz	@@LOOPFILA
+
+	ret
+

@@ -1,0 +1,35 @@
+; ////////////////////////////////
+; ///////// N2ASCII //////////////
+; ////////////////////////////////
+
+; converteix numero 'a' en ascii 'hl' (HEXADECIMAL)
+
+; A = Numero a convertir
+
+; Cal RAM : res
+; Toca	  : B
+; Retorna : HL (en Hexa. H=dece. L=unid.)
+; Usa fun.: res
+
+N2ASCII:
+	ld 	B,A
+	and 	00001111b
+	cp 	0Ah
+	;
+	call 	nc,N2ASCII_0
+	add 	A,30h
+	ld 	L,A
+	ld 	A,B
+	srl 	A
+	srl 	A
+	srl 	A
+	srl 	A
+	cp 	0Ah
+	call 	nc,N2ASCII_0
+	add 	A,30h
+	ld 	H,A
+	ret
+	
+N2ASCII_0:
+	add 	A,07h
+	ret

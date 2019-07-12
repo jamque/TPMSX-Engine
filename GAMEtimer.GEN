@@ -1,0 +1,147 @@
+;-----------------
+; rutina timer
+;-----------------
+
+;/// Configura el timer (VERSIO SENSE BIOS) ///
+TIMER_S:
+	ld 	HL,TIMER_T
+	ld 	[HL],0
+	ret
+
+TIMER_R:
+	push	AF
+	push	BC
+	push	DE
+	push	HL
+	push	IX
+	push	IY
+	
+	in	A,[99h] ; acknowledge?
+			; Al no tener BIOS este "in" fa RESET de EI.
+			;   perque no torni a entrar.
+	; Lectura de SPRITE COLISION
+	and	00100000b
+	srl	A
+	srl	A
+	srl	A
+	srl	A
+	srl	A
+	ld	[TIM_SPC],A
+
+;***** Activar Control Temps Timer ***
+IFDEF	TEST_BORDES
+	ld	A,2
+	call	COLORBR
+ENDIF
+;*************************************
+;******** Aqui va la rutina ********
+	ld 	HL,TIMER_T
+	inc 	[HL]	;incrementa contador
+	call	TIMERUPDATE
+	
+	call	MOTOR_TIMER_SPECIAL
+	
+;***** Activar Control Temps Timer ***
+IFDEF	TEST_BORDES
+	ld	A,13
+	call	COLORBR
+ENDIF
+;*************************************
+	
+	ld 	HL,SPRRAM
+;	call 	IPBVRS		;volca buffer Sprite a VRAM
+	call 	IPBVRSALTER	;volca buffer Sprite a VRAM amb ALTERNANCIA
+
+;***** Activar Control Temps Timer ***
+IFDEF	TEST_BORDES
+	ld	A,11
+	call	COLORBR
+ENDIF
+;*************************************
+	ld	A,[VBUFF_UPDATE]
+	or	A
+	jr	z,@@NEXT	; Solo se actualiza si VBUFF_UPDATE != 0
+	xor	A
+	ld	[VBUFF_UPDATE],A
+	ld 	HL,VBUFF
+	ld	DE,VRM_MAP
+	ld	B,96
+	call 	IWBVRM		;volca buffer a VRAM
+@@NEXT:
+;***** Activar Control Temps Timer ***
+IFDEF	TEST_BORDES
+	ld	A,7
+	call	COLORBR
+ENDIF
+;*************************************
+
+	call 	TECLA		;refresca array de teclat
+	ld	HL,JOY1
+	xor	A
+	call	GETJOY		;refresca Joystick 1
+	ld	HL,CURSORS
+	xor	A
+	call	GETCURSORS	;refresca Cursors
+	ld	A,[JOY1]	
+	ld	HL,CURSORS
+	or	[HL]		;fusio de cursors+joystick 1
+	ld	[PLY1CONTROL],A
+	;call	GETMOUSE
+
+;***** Activar Control Temps Timer ***
+;IFDEF	TEST_BORDES
+;	ld	A,9
+;	call	COLORBR
+;ENDIF
+;*************************************
+
+;Toca musica o FX
+	ld	A,TIMER_MINIPSG
+	call	TIMERCHECK
+	jr	z,@@PLAYER_FULL
+
+	ld	A,[PT3_ON]
+	or	A
+	jr	Z,@@END_PLAYER_TIMER_CONTROL 
+	call	PT3_PLAY			; Calcula como ande estar los valores del PSG en el Frame
+	jr	@@END_PLAYER_TIMER_CONTROL
+
+@@PLAYER_FULL:
+	ld	A,[PT3_ON]
+	or	A
+	jr	Z,@@END_PLAYER_TIMER_CONTROL 
+	call	PT3_PLAY			; Calcula como ande estar los valores del PSG en el Frame
+	call	PT3_ROUT			; pasa los valores que han de sonarl al PSG
+
+@@END_PLAYER_TIMER_CONTROL:
+	; Suma de frames y segundos
+	ld	A,[PT3_FRAME]
+	inc	A
+	ld	[PT3_FRAME],A
+	cp	50
+	jr	c,@@END_FRAME_SECOND_CONTROL
+	xor	A
+	ld	[PT3_FRAME],A
+	ld	A,[PT3_SECOND]
+	inc	A
+	ld	[PT3_SECOND],A
+@@END_FRAME_SECOND_CONTROL:
+
+;***********************************
+;***** Desctivar Control Temps Timer ***
+IFDEF	TEST_BORDES
+	ld	A,1
+	call	COLORBR
+ENDIF
+;********************************
+
+	pop	IY
+	pop	IX
+	pop	HL
+	pop	DE
+	pop	BC
+	pop	AF
+
+	ei
+	;ret	;  (32ks o Megarom) Torna amb RET perque hi ha BIOS i s'enganxa a 0FD9Fh
+	reti 	;  (>48ks) No hi ha bios cal fer reti.

@@ -1,0 +1,35 @@
+; ////////////////////////////////
+; ///////// N162ASC //////////////
+; ////////////////////////////////
+
+; converteix numero 'HL' en ascii al buffer 'DE'
+
+; HL = Numero a convertir
+; DE = Posicion del Buffer del Numero (5 bytes)
+
+; Cal RAM : res
+; Toca	  : BC
+; Retorna : a DE (en ASCII)
+; Usa fun.: res
+
+N162ASC:
+	ld 	BC,-10000
+	call 	N162ASC_1
+	ld 	BC,-1000
+	call 	N162ASC_1
+	ld 	BC,-100
+	call 	N162ASC_1
+	ld 	C,-10
+	call 	N162ASC_1
+	ld 	C,-1
+
+N162ASC_1:
+	ld 	A,'0'-1
+N162ASC_2:
+	inc 	A
+	add 	HL,BC
+	jr 	c,N162ASC_2
+	sbc 	HL,BC
+	ld 	[DE],A
+	inc 	DE
+	ret

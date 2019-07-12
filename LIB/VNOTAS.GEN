@@ -1,0 +1,19 @@
+
+VNOTAS:				
+	; Octava 0 (0)
+	db	05Dh,0Dh,09Ch,0Ch,0E7h,0Bh,03Ch,0Bh,09Bh,0Ah,002h,0Ah,073h,9h,0EBh,8h,6Bh,8h,0F2h,7h,080h,7h,014h,7h
+	; Octava 1 (24)
+	db	0AEh,06h,04Eh,06h,0F4h,05h,09Eh,05h,04Dh,05h,001h,05h,0B9h,4h,075h,4h,35h,4h,0F9h,3h,0C0h,3h,08Ah,3h
+	; Octava 2 (48)
+	db	057h,03h,027h,03h,0FAh,02h,0CFh,02h,0AFh,02h,081h,02h,05Dh,2h,03Bh,2h,1Bh,2h,0FCh,1h,0E0h,1h,0C5h,1h
+	; Octava 3 (72)
+	db	0ACh,01h,094h,01h,07Dh,01h,068h,01h,053h,01h,040h,01h,02Eh,1h,01Dh,1h,0Dh,1h,0FEh,0h,0F0h,0h,0E2h,0h
+	; Octava 4 (96)
+	db	0D6h,00h,0CAh,00h,0BEh,00h,0B4h,00h,0AAh,00h,0A0h,00h,097h,0h,08Fh,0h,87h,0h,07Fh,0h,078h,0h,071h,0h
+	; Octava 5 (120)
+	db	06Bh,00h,065h,00h,05Fh,00h,05Ah,00h,055h,00h,050h,00h,04Ch,0h,047h,0h,43h,0h,040h,0h,03Bh,0h,039h,0h
+	; Octava 6 (144)
+	db	035h,00h,032h,00h,030h,00h,02Dh,00h,02Ah,00h,028h,00h,026h,0h,024h,0h,22h,0h,020h,0h,01Eh,0h,01Ch,0h
+	; Octava 7 (168)
+	db	01Bh,00h,019h,00h,018h,00h,016h,00h,015h,00h,014h,00h,013h,0h,012h,0h,11h,0h,010h,0h,00Fh,0h,00Eh,0h
+	

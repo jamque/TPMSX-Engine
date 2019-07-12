@@ -1,0 +1,47 @@
+; ////////////////////////////////
+; ///////// SLIDERI //////////////
+; ////////////////////////////////
+
+; Cortilla a la derecha
+; Contiene HALTS !. 
+
+; A = 	Char de relleno
+; DE =	Pos. del Buffer Inicial
+; B =	Ancho
+; C =	Alto
+; HL =	Posicio Buffer pantalla
+
+; Cal RAM : res
+; Toca	  : HL,BC,DE
+; Retorna : res
+; Usa fun.: res
+
+SLIDERI:
+	add	HL,DE	; Inicio VBUFF
+	
+	; Ancho Ya lo tengo en B
+	ld	DE,32
+
+@@LOOPY:
+	push	BC
+	push	HL
+
+	push	AF
+	ld	A,1		; Marco para que se actualice VRAM
+	ld	[VBUFF_UPDATE],A
+	pop	AF
+
+	halt
+	
+	; Alto Ya lo tengo en C
+	ld	B,C
+@@LOOPX:
+	ld	[HL],A
+	add	HL,DE
+	djnz	@@LOOPX
+	pop	HL
+	pop	BC
+	inc	HL
+	djnz	@@LOOPY
+	
+	ret

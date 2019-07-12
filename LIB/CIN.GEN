@@ -1,0 +1,170 @@
+; CIN
+; Captura de teclado y muestra por pantalla.
+; Usa RAM: CONTROL.RAM
+
+; CIN_INI
+; Inicia las variables propias
+; Entrada:
+;	BC -> Y,X de la posicio on pintar
+;	A -> Offset de tile A
+;	D -> Longitud a capturar
+; Salida:
+;	-
+; Modifica:
+;	-
+; Dependencias:
+;	-
+CIN_INI:
+	ld	[TEXT_CHAR_OFF],A
+	ld	A,D
+	ld	[TEXT_MAX],A
+	ld	[TEXT_X],BC
+	xor	A
+	ld	[TEXT_ALLIN],A
+	ld	[TEXT_COUNT],A
+	ld	HL,TEXT_IN
+	ld	B,32
+@@LOOP:
+	ld	[HL],A
+	inc	HL
+	djnz	@@LOOP
+	ret
+	
+; CIN_GET
+; Captura la tecla y la guarda si es necesario y es valida
+; Se ha de llamar como en un update. Eso permite hacer más cosas 
+; mientras se espera la captura de tecla.
+; Finaliza captura con ENTER.
+; Admite BS para borrar caracter
+; Entrada:
+;	-
+; Salida:
+;	Variables internas ver CONTROL.RAM
+; Modifica:
+;	A,DE,HL
+; Dependencias:
+;	TIMERS.GEN
+;	Timer 4
+;	MIRATECLA.GEN
+CIN_GET:
+	ld	A,4
+	call	TIMERCHECK	; Pasa quan sigui cero
+	ret	nz
+	call	MIRATECLA ; Capturem el teclat, sino es zero
+	or	A
+	ret	z
+	ld	BC,0408h		; Timer 4 a 8 = 160ms
+	call	TIMERSET		; Timer 4 : Captura Tecla
+	ld	C,A ; Me guardo C que es la letra entrada
+	; Verificaciones si es un BS o un ENTER
+	cp	13
+	jr	z,@@NOMORE
+	cp	8
+	jr	z,@@ATRAS
+	ld	A,[TEXT_COUNT]
+	ld	E,A
+	ld	A,[TEXT_MAX]	; Comparamos si no hay que coger mas
+	cp	E
+	ret	z			; si TEXT_MAX = TEXT_COUNT
+	ld	HL,TEXT_IN
+	ld	A,[TEXT_COUNT]
+	ld	E,A
+	ld	D,0
+	add	HL,DE	; Apuntamos donde guardar la letra
+	ld	[HL],C	; Guardamos el caracter
+	inc	E		; +1 letra nueva
+	ld	A,E
+	ld	[TEXT_COUNT],A
+	ret
+@@NOMORE:
+	ld	A,1
+	ld	[TEXT_ALLIN],A
+	ret
+@@ATRAS:
+	ld	A,[TEXT_COUNT]
+	or	A
+	ret	z	; Si es zero no se puede ir patras
+	dec	A
+	ld	[TEXT_COUNT],A
+	ld	E,A
+	ld	D,0
+	ld	HL,TEXT_IN
+	add	HL,DE
+	ld	[HL],0	; Ponemos un cero para borrar
+	xor	A
+	ld	[TEXT_ALLIN],A
+	ret
+
+; CIN_RENDER
+; Pinta la cadena introducida
+; Entrada:
+; 	HL -> Buffer desti (generalment VBUFF) debe incluir posicion
+; Salida:
+;
+; Modifica:
+;	A,BC,DE,HL,IX
+; Dependencias:
+;	TIMER_T -> TIMER.RAM
+CIN_RENDER:
+	push	HL
+	ld	D,0
+	ld	A,[TEXT_Y]
+	ld	E,A
+	ld	B,5
+@@LOOP:
+	sla	E
+	rl	D
+	djnz	@@LOOP
+	push	DE
+	pop	HL
+	ld	D,0
+	ld	A,[TEXT_X]
+	ld	E,A
+	add	HL,DE
+	push	HL
+	pop	DE
+	pop	HL
+	add	HL,DE 	; Ya tenemos el puntero TARGET listo
+	; Parpadeo del ?
+	ld	A,[TIMER_T]
+	and	00000100b
+	jr	z,@@INTERROGANTE
+	ld	A,32	; Space
+	jr	@@NEXT
+@@INTERROGANTE:
+	ld	A,'?'
+@@NEXT:
+	ld	C,A
+	ld	A,[TEXT_CHAR_OFF]
+	add	A,C
+	ld	[HL],A
+	inc	HL
+	push	HL
+	; Loop para poner espacios en blanco
+	ld	A,[TEXT_MAX]
+	ld	B,A
+@@WRITE_SPACE_LOOP:
+	ld	A,32		; Space
+	ld	C,A
+	ld	A,[TEXT_CHAR_OFF]
+	add	A,C
+	ld	[HL],A
+	inc	HL
+	djnz	@@WRITE_SPACE_LOOP
+	pop	HL
+	; Loop para poner las letras
+	ld	A,[TEXT_MAX]
+	ld	B,A
+	ld	IX,TEXT_IN
+@@WRITE_LOOP:
+	ld	A,[IX]
+	or	A
+	ret	z	; Si hay un cero paramos y nos vamos
+	ld	C,A
+	ld	A,[TEXT_CHAR_OFF]
+	add	A,C
+	ld	[HL],A
+	inc	IX
+	inc	HL
+	djnz	@@WRITE_LOOP
+	ret

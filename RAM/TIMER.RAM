@@ -1,0 +1,18 @@
+; ################################
+; Variables de fichero: TIMERS.GEN
+; ################################
+; Usos en otras rutinas:
+; Timer 0:
+; Timer 1:
+; Timer 2:
+; Timer 3: Se usa en MINIPSG para contar el tiempo del FX vs MUSIC
+; Timer 4: Se usa en CIN.GEN para captura de teclado.
+TIMER:		.ds	6	; Timers decrementales (Max 255)
+TIMEREND:
+
+; ###############################################
+; Variables de la Rutina de TIMER en Interrupción
+; ###############################################
+TIMER_T: 	.byte		; Valor que canvia a cada Interrupcio
+TIM_SPC:	.byte		; 1 si hi ha SPRITE COLISION
+TIM_RND:	.word		; RANDOM seed

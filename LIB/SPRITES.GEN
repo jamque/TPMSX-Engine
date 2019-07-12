@@ -1,0 +1,80 @@
+; Contiene dues rutinas
+; SPRT_INI :	Inicialitza la taula RAM de SPRITES
+; PUTSPRT : 	PUT SPRiTe com el de Basic a RAM SPRRAM
+
+
+; ////////////////////////////////
+; //////// SPRT_INI //////////////
+; ////////////////////////////////
+
+; Inicialitza la taula RAM de SPRITES
+; (X,Y)->(255,0) Color 0 y pattern A
+
+; A = Num.Sprite
+; IX= Direccio Taula RAM de SPRITES
+
+; Cal RAM : res
+; Toca	  : BC,DE,IX
+; Retorna : res
+
+SPRT_INI:	
+	; VERSIO que sea la 0 y la tabla en el mismo SPRRAM (ahorro bytes)
+	; Inicialitzo la taula RAM de SPRITES
+	xor	A
+	ld	IX,SPRRAM
+;	sla	A
+;	sla	A
+	ld	DE,4
+	ld	B,32
+@@LOOP1:
+	ld	[IX],191	;Y =208 Especial Apagar
+	ld	[IX+1],255	;X
+	ld	[IX+2],A	;Pattern 
+	ld	[IX+3],A	;Color
+	add	IX,DE
+	djnz	@@LOOP1
+	
+	ret
+
+
+; ////////////////////////////////
+; ///////// PUTSPRT //////////////
+; ////////////////////////////////
+
+; PUT SPRiTe com el de Basic
+
+; H = Coordenada Y
+; L = Coordenada X
+; D = Patt.Num (*4 si es 16x16)
+; E = Color 
+; C = Plano de Sprite (0 - 32)
+
+; Cal RAM : SPRRAM (128bytes)
+; Toca	  : HL
+; Retorna : res
+; Usa fun.: res
+
+PUTSPRT:
+	push	DE
+	push	HL
+	
+	ld	A,C
+	ld 	HL,SPRRAM
+	sla	A
+	sla	A
+	ld	D,0
+	ld	E,A
+	add	HL,DE
+
+	pop	DE	;Recupero (Y,X)HL a DE
+	ld	[HL],D
+	inc	HL
+	ld	[HL],E
+	inc	HL
+	
+	pop	DE	;Recupero (Patt,Color)DE
+	ld	[HL],D
+	inc	HL
+	ld	[HL],E
+
+	ret

@@ -1,0 +1,191 @@
+; Rutinas de sonido simple
+
+TIMER_MINIPSG	.equ	3
+
+
+; PLAYFX
+; Ejecuta una sentencia de comandos sobre el PSG poniendo los valores
+;   de la cadena dada de datos a los registros del PSG
+; Entrada:
+;	C -> Tiempo del efecto de sonido en frames.
+;	HL -> Etiqueta de memoria de sonido donde están los datos para hacer el play
+; Salida:
+;	-
+; Modifica:
+;	-
+; Dependencias:
+;	Usa la funcion PLAYAMBIENT
+PLAYFX:
+	push	BC
+	xor	A
+	ld	[PLAYAMBION],A
+	ld	B,TIMER_MINIPSG	; B Timer 
+	; C Valor
+	call	TIMERSET
+	call	PSGMUTE
+	call	PLAYAMBIENT
+	
+	pop	BC
+	ret
+
+; PLAYAMBIENT
+; Rutina llamada por PLAYFX
+; Entrada:
+; HL = Etiqueta de so_ambient a fer play 
+; //////////////////////////////////
+; Inicia els timers a zero
+; HL = Etiqueta de so_ambient a fer play 
+; Registres: 0,1,2,3,6,7,8,9,B,C,D
+; Cal RAM : 
+; Toca	  : HL
+; Retorna : res
+; Usa fun.:
+
+PLAYAMBIENT:
+	push	AF
+	push	BC
+	ld	B,4	; 0-3
+	ld	C,0
+@@PLAY_03:	
+	ld	A,C
+	out	[0A0h],A
+	ld	A,[HL]
+	out	[0A1h],A
+	inc	C
+	inc	HL
+	djnz	@@PLAY_03
+	inc	C
+	inc	C
+	; Reg 6
+	ld	A,C
+	out	[0A0h],A
+	ld	A,[HL]
+	out	[0A1h],A
+	inc	C
+	inc	HL
+	; Reg 7 (Con mascara solo canal 1-2)
+	ld	A,C
+	out	[0A0h],A
+	in	A,[0A2h]
+	;and	11100100b	; Conservo el canal 3
+	and	11000000b	; No conservo una mierda
+	ld	B,A
+	ld	A,[HL]
+	and	00011011b
+	or	B
+	ld	B,A
+	ld	A,C
+	out	[0A0h],A
+	ld	A,B
+	out	[0A1h],A
+	inc	HL
+	; 
+	inc	C
+	ld	B,2		;8-9
+@@PLAY_89:	ld	A,C
+	out	[0A0h],A
+	ld	A,[HL]
+	out	[0A1h],A
+	inc	C
+	inc	HL
+	djnz	@@PLAY_89
+	inc	C
+	ld	B,3		;B-D
+@@PLAY_BD:	ld	A,C
+	out	[0A0h],A
+	ld	A,[HL]
+	out	[0A1h],A
+	inc	C
+	inc	HL
+	djnz	@@PLAY_BD
+	
+	pop	BC
+	pop	AF
+	ret
+	
+PLAYRNDINI:
+	push	AF
+	push	BC
+	;ld	A,R	; Pillo un valor random
+	;sla	A
+	;sla	A
+	;sla	A
+	;ld	[PLAYRNDVALUE],A
+	ld	A,1
+	ld	[PLAYRNDTIMES],A
+	ld	BC,TIMER_MINIPSG*256+6	; B Timer C Valor
+	call	TIMERSET
+	xor	A
+	ld	A,[PLAYAMBION]
+	pop	BC
+	pop	AF
+	ret
+
+PLAYRNDTIMER:	; SOLO CANAL 3
+	push	AF
+	push	BC
+	; Que PLAYRNDTIME sea mayor que cero
+	ld	A,[PLAYRNDTIMES]
+	or	A
+	jr	z,@@MUTECANAL3	; Me piro si ya es 0 y bajo volumen
+	dec	A
+	ld	[PLAYRNDTIMES],A ; Decremento 1 vez
+	ld	HL,VNOTAS
+	ld	DE,24
+	add	HL,DE
+	ld	D,0
+	ld	A,[PLAYRNDVALUE]
+	sub	'A'
+	and	11111110b
+	;srl	A
+	;sla	A
+	;and	00000001b
+	ld	E,A
+	add	HL,DE
+	ld	A,4
+	out	[0A0h],A
+	ld	A,[HL]
+	out	[0A1h],A
+	inc	HL
+	ld	A,5
+	out	[0A0h],A
+	ld	A,[HL]
+	out	[0A1h],A
+	
+	ld	A,5
+	out	[0A0h],A
+	xor	A
+	out	[0A1h],A
+
+	; Reg 7 (Con mascara solo canal 3 y solo BEEP)
+	ld	A,7	; Lo leo
+	out	[0A0h],A
+	in	A,[0A2h]
+	;and	11111011b	; Abro canal 3
+	and	11000000b	; Abro canal 3 solo Square
+	or	00111011b
+	ld	B,A
+	ld	A,7
+	out	[0A0h],A
+	ld	A,B
+	out	[0A1h],A ; Lo subo a canal 7
+	
+	; Registro 10	- Volumen a 8
+	ld	A,10
+	out	[0A0h],A
+	ld	A,8
+	out	[0A1h],A
+	jr	@@FUERA
+@@MUTECANAL3:
+	ld	A,TIMER_MINIPSG
+	call	TIMERCHECK
+	jr	z,@@FUERA
+	; Registro 10	- Volumen a 0
+	ld	A,10
+	out	[0A0h],A
+	xor	A
+	out	[0A1h],A
+@@FUERA:
+	pop	BC
+	pop	AF
+	ret

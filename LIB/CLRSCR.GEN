@@ -1,0 +1,26 @@
+; CLRSCR
+; Borra Buffer de memoria con un tile determinador
+; Pone 768 valores iguales seguidos.
+; Entrada:
+;	D -> Tile a poner
+;	HL -> Puntero del Buffer a rellenar
+; Salida:
+;	-
+; Modifica:
+;	BC,HL
+; Dependencias:
+; -
+CLRSCR:
+	ld	BC,768
+@@LOOP4:
+	ld	A,D
+	ld	[HL],A
+	dec	BC
+	inc	HL
+	xor	A
+	cp	B
+	jr	nz,@@LOOP4
+	cp	C
+	jr	nz,@@LOOP4
+	
+	ret

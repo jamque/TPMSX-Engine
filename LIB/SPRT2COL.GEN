@@ -1,0 +1,73 @@
+; ////////////////////////////////
+; ///////// SPRT2COL /////////////
+; ////////////////////////////////
+
+; 2 Sprites Colision ?
+
+; Las coordenadas de los Sprites deben estar definidos en RAM
+; 3 bytes con el siguiente orden Y,X,ON/Off
+; Se supone que el sprite viene colocado en X,Y por 
+; esquina superior izquierda.
+
+; IX = Inicio de Array RAM de Sprite 1
+; IY = Inicio de Array RAM de Sprite 2
+; D  = Tamaño X de Sprite 1 (INCXSprt1)
+; E  = Tamaño Y de Sprite 1 (INCYSprt1)
+; B  = Tamaño X de Sprite 2 (INCXSprt2)
+; C  = Tamaño Y de Sprite 2 (INCYSprt2)
+
+; Parejas DE, BC los valores serian
+; 8x8	ld	RR,0808h
+; 16x16	ld	RR,1010h
+; 32x32 ld	RR,2020h
+
+; Retornar 1 o 0 si entre les coordenades dels sprites es toquen
+
+; Cal RAM : res
+; Toca	  : B,C,D,E,IX,IY
+; Retorna : A = 1 si es toquen, 0 si no es toquen
+; Usa fun.: res
+
+SPRT2COL:
+	ld	A,[IX+2]	; Está actiu el sprite 1 ?
+	cp	1
+	jr	nz,@@ENDNO	
+	ld	A,[IY+2]	; Está actiu el sprite 2 ?
+	cp	1
+	jr	nz,@@ENDNO	
+	
+	ld	A,[IY+0]	; Y_Sprt1 < ( Y_Sprt2+INCYSprt2)
+	add	A,C
+	ld	C,A
+	ld	A,[IX+0]
+	cp	C
+	jr	nc,@@ENDNO
+	
+	;ld	A,[IX+0] 	[Anulable pq ya está el valor ahí]
+				; Y_Sprt2 < ( Y_Sprt1+INCYSprt1)
+	add	A,E
+	ld	E,A
+	ld	A,[IY+0]
+	cp	E
+	jr	nc,@@ENDNO	
+	
+	ld	A,[IY+1]	; X_Sprt1 < ( X_Sprt2+INCXSprt2)
+	add	A,B
+	ld	B,A
+	ld	A,[IX+1]
+	cp	B
+	jr	nc,@@ENDNO
+	
+	;ld	A,[IX+1] 	[Anulable pq ya está el valor ahí]
+				; X_Sprt2 < ( X_Sprt1+INCXSprt1)
+	add	A,D
+	ld	D,A
+	ld	A,[IY+1]
+	cp	D
+	jr	nc,@@ENDNO
+@@ENDSI:
+	ld	A,1
+	ret
+@@ENDNO:
+	xor	A
+	ret

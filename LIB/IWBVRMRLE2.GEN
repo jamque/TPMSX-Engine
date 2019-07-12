@@ -1,0 +1,142 @@
+; IWBVRMRLE 2
+; Write Bloq Video RaM en compresion RLE 2 propio
+;   Basado en wonder boy RLE de Sega Master system 
+;   con byte de control variable en el primer byte del bloque.
+; Volca bytes desde direccion RAM HL a la direccion VRAM DE
+; No utilitza BIOS, CAL deshabilitar les interupcions
+; Supone VDP en puertos 98h, 99h
+; Requiere llamarse con interrupciones desactivadas
+; Basado en IWBVRM de Arnau Castellvi / Zona Neutra
+; 2012 Rafel Arreglos RLE
+; 2016 Rafel Arreglos RLE2
+; Entrada:
+;	HL -> Direccion RAM (byte de control en el primer byte del bloque)
+;	DE -> Direccion VRAM destino
+; Salida:
+;	-
+; Modifica:
+;	BD,DE,HL
+; Dependencias:
+;	Llama a READRLE1DATA (mismo fichero)
+;	Hace un HALT al final de la rutina. Se salta un frame para permitir
+;	  el update de sonido. Es una rutina lenta. Cuidado.
+IWBVRMRLE2:
+	ld 	A,E
+	out 	[99h],A
+	ld 	A,D
+	or 	40h
+	out 	[99h],A
+	ld 	C,98h
+
+	ld	A,[HL]	; Leo byte de control
+	inc	HL
+	ld	E,A	; Guardo en E el byte de control
+@@LOOP:
+	call	READRLE1DATA ; Si devuelve 0 bytes a copiar (B) ya es fin
+	ld	A,B
+	or	A
+	jr	z,@@END
+
+	; Loop de copia
+@@COPY_VRAM:
+	out	[C],D	; copio dato en D a VRAM
+	nop	; Espera por VDP
+	nop	; Espera por VDP
+	djnz	@@COPY_VRAM
+	jr	@@LOOP
+@@END:
+		;PAUSA para UPDATE de musica
+	ei
+	halt
+	di
+		;_PAUSA
+	ret
+	
+
+; READRLE1DATA
+; Decodifica dato RLE2
+; Entrada:
+;	HL-> Direccion RAM del codigo comprimido a leer.
+;	E -> Byte de control (bytecode)
+; Salida:
+; 	D -> Byte a copiar (dato)
+;	B -> Veces que se ha de copiar
+;	HL -> Incrementa HL y lo deja listo para leer el siguiente datoRLE
+; Modifica:
+;	BC,DE,HL
+; Dependencias:
+;	-
+READRLE1DATA:
+	ld	A,[HL]	; Leo byte
+	inc	HL
+	cp	E	; Si byte es bytecode
+	jr	nz,@@NOES_BYTECODE
+	ld	A,[HL]		; Leo byte
+	inc	HL
+@@CONTROL_0:
+	or	A
+	jr	nz,@@CONTROL_1
+	; Case 0: Fi de datas
+	ld	B,0	; Un cero en B indica que ya no hay mas datos que copiar
+	jr	@@END
+@@CONTROL_1:
+	cp	1
+	jr	nz,@@CONTROL_2
+	; Case 1: copiar 1 vez el byte de control
+	ld	B,1	; a copiar 1 vez
+	ld	D,E	; Pongo byte de control
+	jr	@@END
+@@CONTROL_2:
+	cp	2
+	jr	nz,@@CONTROL_N
+	; Case 2: copiar 2 veces el byte de control
+	ld	B,2	; a copiar 2 veces
+	ld	D,E	; Pongo byte de control
+	jr	@@END
+@@CONTROL_N:
+	; Case N: copiar N veces el byte de control
+	ld	B,A	; a copiar N veces
+	ld	A,[HL]	; Leo byte
+	inc	HL
+	ld	D,A	; Pongo byte leido a copiar
+	jr	@@END
+@@NOES_BYTECODE:
+	ld	B,1	; a copiar 1 vez
+	ld	D,A	; el byte que esta sin comprimir
+@@END:
+	ret
+	
+; WBRMRMRLE 2
+; Write Bloq RaM to RaM en compresion RLE 2 propio
+;   Basado en wonder boy RLE de Sega Master system 
+;   con byte de control variable en el primer byte del bloque.
+; Volca bytes desde direccion RAM HL a la direccion RAM DE
+; Entrada:
+;	HL ->	 direccion RAM origen (codigo de control al primer byte del block)
+; 	DE -> direccion RAM destino
+; Salida:
+;	-
+; Modifica:
+;	BC,DE,HL
+; Dependencias:
+WBRMRMRLE2:
+	push	DE
+	pop	IY	; Direccion destino en IY
+	
+	ld	A,[HL]	; Leo byte de control
+	inc	HL
+	ld	E,A	; Guardo en E el byte de control
+@@LOOP:
+	call	READRLE1DATA ; Si devuelve 0 bytes a copiar (B) ya es fin
+	ld	A,B
+	or	A
+	jr	z,@@FI
+
+	; Loop de copia
+@@COPY_RAM:
+	ld	[IY],D	; copio dato en D RAM Registro IY
+	inc	IY
+	djnz	@@COPY_RAM
+	jr	@@LOOP
+@@FI:
+	ret

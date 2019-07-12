@@ -1,0 +1,57 @@
+; IWBVRM
+; Write Bloq Video RaM
+; Volca  B bloques de 8 bytes desde la direccion RAM HL a la direccion VRAM DE
+; Supone VDP en puertos 98h, 99h
+; Requiere llamarse con interrupciones desactivadas
+; Fecha y Autor: 29/12/04 Arnau Castellvi / Zona Neutra
+; Entrada:
+; 	B  ->	Numero de bloques de 8 bytes
+; 	HL -> Direccion RAM Origen
+;	DE -> Direccion VRAM Destino
+; Salida:
+;	-
+; Modifica:
+;	BC,D
+; Dependencias:
+;	-
+IWBVRM:
+	ld 	A,E
+	out 	[99h],A
+	ld 	A,D
+	or 	40h
+	out 	[99h],A
+	ld 	C,98h
+@@LOOP: 
+	ld 	D,B
+	outi
+	nop
+	nop
+	nop
+	outi
+	nop
+	nop
+	nop
+	outi
+	nop
+	nop
+	nop
+	outi
+	nop
+	nop
+	nop
+	outi
+	nop
+	nop
+	nop
+	outi
+	nop
+	nop
+	nop
+	outi
+	nop
+	nop
+	ld 	B,D
+	outi
+	jr 	nz,@@LOOP
+  
+	ret

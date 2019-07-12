@@ -1,0 +1,20 @@
+; ########################################
+; Cosntantes para algunas rutinas de video
+; ########################################
+; IPBVRSALTER
+SPR_FIJOS	equ	0	; Marca cuantos SPRITES desde el 0 no van a hacer el flip
+
+; ################################################
+; Variables para VDP Video
+; ################################################
+; Buffer de VIDEO
+VBUFF:		.ds 	768	; Requiere inicializarlo 
+SPRRAM:		.ds	128	; SPRITE RAM BUFFER (4bytes/sprite*32planos)
+				; Si Y = 208 no es mostren d'aquest cap endavant
+				; 0: CoorY 1:CoorX
+				; 2: Patt.Num (*4 si es 16x16)
+				; 3: Color
+SPRRAM_ROT:	.byte		; Control del Sprite que subo primero a VRAM
+VBUFF_UPDATE:	.byte		; Si lo ponemos a 1 se sube VBUFF a VRAM
+;RAM Buffer 4 Tiles
+TILEBUFF:	ds	8*4	; Zona de ram per copiar tiles-sprite

@@ -1,0 +1,37 @@
+; ////////////////////////////////
+; //////////// TECLA /////////////
+; ////////////////////////////////
+
+; Rutina de control del TECLAT
+; volca l'estat del TECLAT (10bytes) al offset 'KEYBOARD'
+; es crida la rutina cada cop que interesa mirar el TECLAT
+; ideal per colocar a la rutina de interrupcio
+
+; utilitza els ports de TECLAt directament
+; en la posicio 0AAh...
+; els 4 bits baixos (xxxx3210) indiquen posicio que llegeix
+; els 4 bits alts   (7654xxxx) son altres coses, millor no modificar
+; en la posicio 0A9h hi ha el valor de la posicio seleccionada
+
+; Cal RAM : KEYBOARD, KEY_f
+; Toca	  : A,B,C,HL
+; Retorna : KEYBOARD (actualitzat)
+; Usa fun.: res
+
+TECLA:	ld	a,0FFh
+	ld 	[KEY_f],a
+	ld 	hl,KEYBOARD
+	ld 	b,10 		;repeteix bucle 10 cops,la matriu ocupa 10bytes
+TECLA0:	push 	bc
+	in 	a,[0AAh]	;agafem el valor de (AA) i posem a 0 la posicio
+	and 	11110000b	;de TECLAt a llegir sente tocar els altres bits
+	dec 	b		;posem la posicio a llegir (b-1) de 9 a 0
+	add 	a,b
+	out 	[0AAh],a	;enviem la posicio a llegir 
+	in 	a,[0A9h]	;llegim l'estat
+	ld 	[hl],a		;volquem la info a TECLAt
+	inc 	hl		;apuntem al byte seguent de TECLAt
+	pop 	bc 
+	djnz 	TECLA0		;repetim bucle
+
+	ret

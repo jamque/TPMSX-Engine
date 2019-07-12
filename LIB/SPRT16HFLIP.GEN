@@ -1,0 +1,69 @@
+; /////////////////////////////////////
+; ///////// SPRT16HFLIP ///////////////
+; /////////////////////////////////////
+
+; Gira un sprite de 16 bits en Horizontal en modo espejo
+
+; IX= Dir. Sprite Original
+; IY= Dir. Sprite modo espejo
+
+; Cal ROM : res
+; Toca	  : B,C,Incrementa IX y IY
+; Retorna : IY = bytes modo espejo
+; Usa fun.: REVERSE_A
+
+SPRT16HFLIP:
+	ld	B,16	; Realizamos espejo de 16 primeros bytes
+	push	IY
+@@LOOP:
+	ld	A,[IX]
+	call	REVERSE_A
+	ld	[IY+16],A
+	inc	IX
+	inc	IY
+	djnz	@@LOOP
+	ld	B,16	; Realizamos espejo de 16 segundos bytes
+	pop	IY
+@@LOOP2:
+	ld	A,[IX]
+	call	REVERSE_A
+	ld	[IY],A
+	inc	IX
+	inc	IY
+	djnz	@@LOOP2
+	ld	BC,16		; Al salir deja a IY apuntando al 
+	add	IY,BC		;   siguiente supuesto sprite
+
+	ret
+	
+; ///////////////////////////////////
+; ///////// REVERSE_A ///////////////
+; ///////////////////////////////////
+;- Gira byte en A
+;  17 bytes y 66 ciclos de reloj
+;  autor: calcmaniac84
+
+; A = byte a girar
+
+; Cal ROM : res
+; Toca	  : C
+; Retorna : A = byte espejo
+; Usa fun.: res
+
+REVERSE_A:
+	ld	C,A 	;C=ABCDEFGH
+	rrca		;A=HABCDEFG
+	rrca		;A=GHABCDEF
+	xor	C 
+	and	10101010b
+	xor	C 	;A=GBADCFEH
+	ld	C,A 	;C=GBADCFEH
+	rrca		;A=HGBADCFE
+	rrca		;A=EHGBADCF
+	rrca		;A=FEHGBADC
+	rrca		;A=CFEHGBAD
+	xor	C
+	and	01100110b 
+	xor	C 	;A=GFEDCBAH
+	rrca		;A=HGFEDCBA
+	ret

@@ -1,0 +1,29 @@
+; BIN2BCD
+; Pasa un número binario del 0 al 99 a formato BCD
+;*****************************
+;	 a(BIN) =>  a(BCD) 
+;	[0..99] => [00h..99h]
+;*****************************
+
+; BIN2BCD
+; Pasa un número binario del 0 al 99 a formato BCD
+; Entrada: 
+;	A -> Número a convertir
+; Salida:
+;	A -> Número BCD
+; Modifica:
+;	B,C
+; Dependencias:
+;	-
+BIN2BCD:
+	push	BC
+	ld	C,A
+	ld	B,8
+	xor	A
+@@LOOP:
+	sla	C
+	adc	A,A
+	daa
+	djnz	@@LOOP
+	pop	BC
+	ret

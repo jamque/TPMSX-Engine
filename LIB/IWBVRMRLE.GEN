@@ -1,0 +1,64 @@
+; IWBVRMRLE
+; Write Bloq Video RaM en compresion RLE propia
+; Volca bytes desde direccion RAM HL a la direccion VRAM DE
+; No utilitza BIOS, CAL deshabilitar les interupcions
+; Supone VDP en puertos 98h, 99h
+; Requiere llamarse con interrupciones desactivadas
+; Basado en IWBVRM de Arnau Castellvi / Zona Neutra
+; 2012 Rafel Arreglos RLE
+; Entrada:
+;	HL -> Direccion RAM 
+;	(2 primeros BYTES (16 bits) -> TOTAL BYTES COMPRIMIDOS)
+; 	DE -> Direccion VRAM destino
+; Salida:
+;	-
+; Modifica:
+;	BC,DE,HL,IX
+; Dependencias:
+:	-
+IWBVRMRLE:
+	ld 	A,E
+	out 	[99h],A
+	ld 	A,D
+	or 	40h
+	out 	[99h],A
+	ld 	C,98h
+	
+	ld	A,[HL]	; Cojo cuantos bytes se han de hacer
+	ld	E,A
+	inc	HL
+	ld	A,[HL]
+	ld	D,A
+	inc	HL
+	
+	push	DE
+	pop	IX	; LD	IX,DE
+@@NEXT:
+	ld	A,[HL]
+	ld	B,A
+	inc	HL
+@@LOOP:	
+	outi
+	dec	HL	; Deja outi, que ya cuento yo ;)
+	inc	B
+	djnz	@@LOOP
+	push	HL	; Guardo por cual byte vamos (despues del color)
+	push	IX
+	pop	HL	; LD 	HL,IX
+	dec	HL
+	dec	HL
+	ld	A,H
+	or	A	; Equivale a CP 0 por flags
+	jr	nz,@@CONT
+	ld	A,L
+	or	A	; Equivale a CP 0 por flags
+	jr	z,@@END
+@@CONT:
+	push	HL
+	pop	IX	;	LD IX,HL
+	pop	HL	; Recupero por cual byte iba
+	inc	HL
+	jr	@@NEXT
+@@END:
+	pop	HL	; Recupero por cual byte iba (per si salgo por @@END)
+	ret

@@ -1,0 +1,5 @@
+; ####################################################
+; Variable para salvar el slot donde estan las paginas
+; y formar bien en linea los 48Ks
+; ####################################################
+slotvar:	.byte		; My Rom slot

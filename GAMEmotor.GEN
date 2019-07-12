@@ -1,0 +1,73 @@
+;;MOTOR DEL JOC
+; ////////////////////////////////
+; ///////// GAMEMOTOR ////////////
+; ////////////////////////////////
+GAMEMOTOR:
+	; PUT YOUR GAME CODE HERE
+	
+	ret
+
+
+; ////////////////////////////////
+; ///////// GAMEINI //////////////
+; ////////////////////////////////
+; Iniciazación de Variables del juego
+GAMEINI:
+	xor	A
+	ld	[PT3_SECOND],A
+	ld	[PT3_FRAME],A
+	ld	[PT3_PATTERN_POS],A
+
+	ld	hl,MUSIC_PT3
+	call	PT3_SELECTMUSIC
+	
+	call	PT3_START
+
+	ret
+
+	
+;------------------------------------
+; SUB RUTINES 
+;------------------------------------
+
+; ////////////////////////////////
+; ///////// SPRTCOL //////////////
+; ////////////////////////////////
+; Sprite colision
+; Similar al ON SPRITE GOSUB del BASIC
+
+; Toca	  : BC,DE,HL,IX
+; Usa	  : 
+
+SPRTCOL:
+;***** Activar Control Temps Timer ***
+IFDEF	TEST_BORDES
+	ld	A,6
+	call	COLORBR
+ENDIF
+;*************************************
+	di		; CAL UN DISABLE INTERRUP MENTRES ES COMPROBA
+
+
+SPRTCOLEND:
+	xor	A
+	ld	[TIM_SPC],A
+;***** Activar Control Temps Timer ***
+;IFDEF	TEST_BORDES
+	ld	A,1
+	call	COLORBR
+;ENDIF
+;*************************************
+	ei
+	ret
+
+
+; ////////////////////////////////
+; /// MOTOR_TIMER_SPECIAL ////////
+; ////////////////////////////////
+; Rutinas y cosas especiales que han de pasar en cada frame
+;   propias del juego en especifico
+MOTOR_TIMER_SPECIAL:
+
+@@END:
+	ret

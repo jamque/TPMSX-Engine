@@ -1,0 +1,33 @@
+; ////////////////////////////////
+; //////// SCREEN22 /////////////
+; ////////////////////////////////
+
+; Posa Screen 2 i mode de Sprites 8 no ampliat
+
+; Cal RAM : res
+; Toca	  : IX,IY
+; Retorna : res
+; Usa fun.: BIOS call interslot
+
+SCREEN	EQU 05Fh
+CALSLT	EQU 001Ch
+EXPTBL	EQU 0FCC1h
+
+SCREEN21:
+	ld 	A,2
+	ld 	IY,[EXPTBL-1]
+	ld 	IX,SCREEN
+	call 	CALSLT
+	di
+	ld	A,1
+	call	COLORBR
+	
+	ld	A,11100000b	; Screen 2,Sprites de 8x8
+	out 	[99h],A
+	nop
+	nop
+	nop
+	nop
+	ld	A,10000001b
+	out	[99h],A
+	ret
