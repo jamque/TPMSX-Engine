@@ -81,7 +81,7 @@ INIJOC:
 	;call	MOUSE_IS
 	; Inicialitzacio del RATOLI
 	;call	MOUSEINI
-	; Inicialització de Variables del joc
+	; InicialitzaciÃ³ de Variables del joc
 	call	GAMEINI
 
 	ei
@@ -168,7 +168,7 @@ FIN:
 	; Datas
 MUSIC_PT3:
 	; MUSIC
-	.INCBIN "DATA/MUSIC/prueba.pt3"
+	;.INCBIN "DATA/MUSIC/prueba.pt3"
 ____PAGE_2_END:
 ;------------------------------------
 ; Variables : RAM
