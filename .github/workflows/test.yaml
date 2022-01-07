@@ -12,7 +12,7 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Run asMSX
-        uses: docker://duhow/asMSX:master
+        uses: docker://ghcr.io/duhow/asMSX:master
         with:
           args: GAME.ASM
       - name: Check content
