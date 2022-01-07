@@ -1,7 +1,7 @@
 ;------------------------------------
 ; Plantilla de Joc 48ks No BIOS
 ; V1.1
-; Dec 2013-Jul 2019
+; Dec 2013-Jan 2022
 ;------------------------------------
 TEST_BORDES=1	; Con solo que exista ya hace los bordes de pantalla en el TIMER
 
