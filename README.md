@@ -26,6 +26,7 @@ What's new:
 - New system to access VDP with MACROS and keep a copy og VDP registers in RAM.
 - Added support libraries for JOYMEGA 3 and 6 buttons
 - Added support libraries for Trilotracker
+- Updates LIB/_EQUS_.GEN for MSX2 VDP
 - Legacy files used in Hans' Adventure:
   - LIB/DU.GEN
   - LIB/FIRE_SCN.GEN
@@ -33,9 +34,12 @@ What's new:
   - LIB/CHECKMSX2.GEN
   - LIB/CLRSCR5.GEN
   - LIB/COMVDP.GEN
+  - LIB/LOADSC5.GEN
   - LIB/MEGAROM.GEN
   - LIB/MSX2_PUTPAL.GEN
   - LIB/MSX2_SCREEN.GEN
+  - LIB/MSX2_SPRLDPOS.GEN
+  - LIB/MSX2_SPRLDPOS_FROMBANK.GEN
   - LIB/SETPAGEVIEW.GEN
   - LIB/SPRITES2.GEN
   - RAM/VIDEO_MSX2.RAM
@@ -63,6 +67,10 @@ Exec a VDP command in MSX2.
 
 Reads JOYMEGA joysticks.
 
+* LIB/GETWASD.GEN
+
+Get WASD as Player 2 controls format.
+
 * LIB/IPBVRM.GEN
 
 Interrupt pub buffer videoram.
@@ -79,6 +87,10 @@ Copy keyboard for play a game (cursors/Space/M or Graph) to Joystick variable.
 
 Load a full screen GFX in Screen 2.
 
+* LIB/LOADSC5.GEN
+
+Load a full screen GFX in Screen 5.
+
 * LIB/MEGAROM.GEN
 
 Prepare some variabler to load Screen 5 images from Konami4 Megarom pages
@@ -94,6 +106,14 @@ Palette MSX2 Routines
 * LIB/MSX2_SCREEN.GEN
 
 V9938 MSX2 Routines to set screen parameters
+
+* LIB/MSX2_SPRLDPOS_FROMBANK.GEN
+
+SPRiTes pattern LoaD to POSition
+
+* LIB/MSX2_SPRLDPOS_FROMBANK.GEN
+
+SPRiTes pattern LoaD FROM a ROM BANK label to POSition
 
 * LIB/PLY42RUT.GEN
 
@@ -122,6 +142,10 @@ For use 64ks ROMS by Imanok.
 * LIB/SPRITES2.GEN
 
 PUT SPRITE for MSX2 (Screen4...8).
+
+* LIB/SPRLDPOS.GEN
+
+SPRiTes pattern LoaD to POSition.
 
 * LIB/TTREPLAY.GEN
 * LIB/TTREPLAYDAT.GEN

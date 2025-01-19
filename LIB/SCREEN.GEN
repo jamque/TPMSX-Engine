@@ -6,7 +6,7 @@
 
 ; A = Modo de Screen deseado
 
-; Cal RAM : res
+; Cal RAM : MACROSVDP.ASM
 ; Toca	  : IX,IY
 ; Retorna : res
 ; Usa fun.: BIOS call interslot
@@ -18,31 +18,47 @@ SCREEN:
 	ld 	IY,(EXPTBL-1)
 	ld 	IX,SCREEN_BIOS
 	call 	CALSLT
-	ld	A,1
-	call	COLORBR
+	; Init Registers
+	; RG(0-7)SAV #F3DF #F3E6
+	ld	BC, 8
+	ld	HL, 0F3DFh
+	ld	DE, VDP_REG
+	ldir
+	; RG(8-23)SAV #FFE7 #FFF6
+	ld	BC, 16
+	ld	HL, 0FFE7h
+	ld	DE, VDP_REG+8
+	ldir
 
-	ld	A,11100010b	; Screen,Sprites de 16x16
-	out 	(99h),A
-	ld	A,80h + 01h
-	out	(99h),A
+	ld	A,1
+	m_WRITE_DATA_REGISTER 07h	; Register 7: colour register.
+
+	; 0 bit 0 Zoom x1 0
+	; 1 bit 1 Sprites de 16x16
+	; 1 bit 5 V-Blank Enable
+	; 1 bit 6 Screen Enable
+	ld	A,(VDP_REG+1)
+	and	11111110b	; 0 bit 0 Zoom x1 0
+	or	01100010b	; los bits 1 5 6
+	m_WRITE_DATA_REGISTER 01h	; Register 1: Mode register 1
 	ret
 
 ; Apaga la pantalla
 ; Requereix interrupcions deshabilitades
 SCREEN_OFF:
-	ld	A,10100010b	; Screen,Sprites de 16x16
-	;and	11011111b	; Bit 5 IE0  V-Blank Interrupt (0=Disable)
-	out 	(99h),A
-	ld	A,80h + 01h
-	out	(99h),A
+	ld	A,(VDP_REG+1)
+	;  6    BLK   Screen output control      (0=Disable, 1=Enable)
+	and	10111111b	; Screen Disable
+	ld	(VDP_REG+1),A
+	m_WRITE_DATA_REGISTER 01h	; Register 1: Mode register 1
 	ret
 
 ; Encen la pantalla
 ; Requereix interrupcions deshabilitades
 SCREEN_ON:
-	ld	A,11100010b	; Screen,Sprites de 16x16
-	;and	11011111b	; Bit 5 IE0  V-Blank Interrupt (0=Disable)
-	out 	(99h),A
-	ld	A,80h + 01h
-	out	(99h),A
+	ld	A,(VDP_REG+1)
+	;  6    BLK   Screen output control      (0=Disable, 1=Enable)
+	or	01000000b	; Screen Enable
+	ld	(VDP_REG+1),A
+	m_WRITE_DATA_REGISTER 01h	; Register 1: Mode register 1
 	ret

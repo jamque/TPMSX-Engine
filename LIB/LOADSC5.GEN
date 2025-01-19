@@ -1,0 +1,59 @@
+; ////////////////////////////
+; ///////// LOADSC5 //////////
+; ////////////////////////////
+
+; Write Bloq Video RaM
+; Compresio RLE2 (WB) amb codi de control al primer byte
+; Volca direccio RAM HL a la direccio VRAM DE
+; No utilitza BIOS, CAL deshabilitar les interupcions
+; versio MSX2 per Screen 5
+; Basat en IWBVRM5RLE2
+; * No fas servir MegaROM. S'espera tot junt
+; 02/08/2023 Rafel
+
+; B = Pagina on va Grafic 
+; HL = 	direccio RAM (codi de control al primer byte del block)
+; DE = 	direccion VRAM
+
+; Cal RAM : res
+; Toca	  : A,BC,DE,HL
+; Retorna : res
+; Usa fun.: READRLE1DATA de IWBVRRLE2.GEN
+
+LOADSC5:
+	ld	A,D
+	and	01000000b ; Bits A15-A13 de direccio VRAM (A15 es page)
+	srl	A
+	srl	A
+	srl	A
+	srl	A
+	srl	A
+	srl	A
+	sla	B	; A16-A15 Ve per B
+	or	B
+	m_WRITE_DATA_REGISTER 0Eh	; Register 0Eh: VRAM access (VRAM address select, higher address lines)
+	ld 	A,E	; Bits A7-A0 de direccio VRAM
+	out 	(99h),A
+	ld 	A,D	; Bits A13-A8 de direccio VRAM
+	and	00111111b
+	or 	40h
+	out 	(99h),A
+	ld 	C,98h
+	
+	ld	E,(HL)	; Leo byte de control + Guardo en E el byte de control
+	inc	HL
+.LOOP:
+	call	READRLE1DATA ; Si devuelve 0 bytes a copiar (B) ya es fin
+	ld	A,B
+	or	A
+	ret	z
+
+	; Loop de copia
+.COPY_VRAM:
+	out	(C),D	; copio dato en D a VRAM
+	; Sin esperas del VDP. Es MSX2
+	dec	B
+	jp	nz,.COPY_VRAM
+	jp	.LOOP
+.FI:
+	ret

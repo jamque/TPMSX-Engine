@@ -14,15 +14,15 @@
 
 PUTPAL:
 	xor	A
-	out	(99h),A
-	ld	A,080h+10h	; a Registre 10h Color inicial
-	out	(99h),A
-
+	m_WRITE_DATA_REGISTER 10h	; Register 10h: Palette Index
 	ld	C,9Ah	; 32 vegades a port 9A
 
 	; Sin esperas pq VDP del MSX2 no las requiere.
 REPT 32
 	outi
+	nop
+	nop
+	nop
 ENDR
 
 	ret
@@ -44,18 +44,12 @@ ENDR
 
 PUTPAL_ONECOLOR:
 	push	AF
-	out	(99h),A
-	ld	A,10h	; a Registre 10h Color inicial
-	or	80h
-	out	(99h),A
+	m_WRITE_DATA_REGISTER 10h	; Register 10h: Palette Index
 
 	ld	C,9Ah	; a port 9A
 	out	(C),H
 	out	(C),L
 	xor	A	; Reset al registre de color inicial amb 0
-	out	(99h),A
-	ld	A,10h	; a Registre 10h Color inicial
-	or	80h
-	out	(99h),A
+	m_WRITE_DATA_REGISTER 10h	; Register 10h: Palette Index
 	pop	AF
 	ret

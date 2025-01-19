@@ -28,6 +28,26 @@ VRM_SPC	equ	7400h	; Sprite Colors
 VRM_SPA	equ	7600h	; Sprite Attributes (Y,X,PatNum,Color)
 VRM_PAL	equ	7680h	; Palette Colors 7680h-769Fh
 VRM_SPP	equ	7800h	; Sprite Patterns
+;VRM_SPP	equ	1F800h	; Sprite Patterns
+
+; 1F400h	; Sprite Colors Full Address
+; 11111010000000000 -> 111 | 11 0100 | 0000 0000
+;VRM_SPC_HIGH	equ	07h	; Sprite Colors High (A16-A14)
+;VRM_SPC_LOW_H	equ	034h	; Sprite Colors Low_High (A13-A8)
+;VRM_SPC_LOW_L	equ	00h	; Sprite Colors Low_Low (A7-A0)
+
+; 1F600h 		; Sprite Attributes Full Address(Y,X,Pat,Color)
+; 11111011000000000 -> 111 | 11 0110 | 0000 0000
+;VRM_SPA_HIGH	equ	07h	; Sprite Attributes High (A16-A14)
+;VRM_SPA_LOW_H	equ	036h	; Sprite Attributes Low_High (A13-A8)
+;VRM_SPA_LOW_L	equ	00h	; Sprite Attributes Low_Low (A7-A0)
+
+; 1F800h		; Sprite Patterns Full Address
+; 11111100000000000 -> 111 | 11 1000 | 0000 0000
+;VRM_SPP_HIGH	equ	07h	; Sprite Patterns High (A16-A14)
+;VRM_SPP_LOW_H	equ	038h	; Sprite Patterns Low_High (A13-A8)
+;VRM_SPP_LOW_L	equ	00h	; Sprite Patterns Low_Low (A7-A0)
+
 ENDIF
 
 ; HighSpeed VDP CMD MSX2: (Que conozco)

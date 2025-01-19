@@ -5,6 +5,8 @@ SPRCOLRAM:	ds	512	; (32 planos * 16 filas)
 MSXID:			byte ; 1=MSX2 o superior  0=MSX
 VPALETTECURRENT:	byte ; Guarda el ID de la paleta actual. (Init = 1)
 VPALETTEMSX2:		byte ; Guarda el ID de la paleta actual de MSX2.
+VPALETTE_DATA:	ds	32	; Guarda les dades de la paleta actual
+				; L'actualitaza PUTPAL
 SELECT_PRESS:		byte ; Flag per repulsar SELECT
 HBLANK_LINE:		byte ; Ultima linea marcada como HBLANK
 HBLANK_FRAMELINE:	byte ; Linea on hauria d'estar el HBLANK actual

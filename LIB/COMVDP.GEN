@@ -40,12 +40,14 @@ ENDR
 
 WAIT_CE:
 	di
-	ld	A,02h
-	out	(099h),A
-	ld	A,80h+0Fh  ; Llegim el Reg 02h posant 2 a Reg 0Fh
-	out	(099h),A
+	ld	A,02h	; Llegim el Reg 02h posant 2 a Reg 0Fh
+	m_SET_STATUS_REGISTER
 	in	A,(099h)
+	ld	B,A
+	xor	A	; retornem Reg 00h posant 0 a Reg 0Fh, Salva Interrup!
+	m_SET_STATUS_REGISTER
 	ei
+	ld	A,B
 	and	1
 	jp	nz,WAIT_CE
 	ret
@@ -96,11 +98,14 @@ ENDR
 ; Usa fun.: res
 
 IS_CE_READY:
-	ld	A,02h
-	out	(099h),A
-	ld	A,80h+0Fh  ; Llegim el Reg 02h posant 2 a Reg 0Fh
-	out	(099h),A
+	ld	A,02h	; Llegim el Reg 02h posant 2 a Reg 0Fh
+	m_SET_STATUS_REGISTER
 	in	A,(099h)
+	ld	B,A
+	xor	A	; retornem Reg 00h posant 0 a Reg 0Fh, Salva Interrup!
+	m_SET_STATUS_REGISTER
+	ei
+	ld	A,B
 	and	1
 	ret
 

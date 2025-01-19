@@ -17,36 +17,3 @@ SPRTLD:
 	CALL  	IWBVRM
 
 	ret
-	
-; ////////////////////////////////
-; ///////// SPRTLDPOS ////////////
-; ////////////////////////////////
-
-; SPRiTes pattern LoaD to POSition
-
-; B = Sprites a pujar de 8x8
-; L = Num Patro inicial a fer el load a VRAM
-; DE = Punter dels patrons del Sprites
-
-; Cal ROM : res
-; Toca	  : B,HL,DE
-; Retorna : res
-; Usa fun.: IWBVRM
-
-SPRTLDPOS:
-	push	DE
-	; L * 32
-	ld	H,0			; *32 con acarreo (5 veces)
-	add	hl,hl			; la distancia al sprite
-	add	hl,hl			; que toca.
-	add	hl,hl
-	add	hl,hl
-	add	hl,hl
-	ld	DE,VRM_SPP
-	add	HL,DE
-	push	HL
-	pop	DE		; En DE direccio VRAM
-	pop	HL		; En HL direccio RAM
-	CALL  	IWBVRM
-
-	ret

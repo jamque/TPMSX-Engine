@@ -1,64 +1,29 @@
 ; Rutines per VDP 9938 MSX2
 
-; ////////////////////////////////////////
-; //////// SCREEN_SOLIDCOLOR0 ////////////
-; ////////////////////////////////////////
-
 ; Fa que el color 0 no sigui transparent
-
 SCREEN_SOLIDCOLOR0:
-	; Toca R8, en Screen 5 valor base es 08h
-	;   bits 2-3  VRS   VRAM size and speed
-	;  (0=1*16KB,1=4*16KB,2=1*64KB,3=64KB/HighSpeed)
-	ld	A,08h
-	or	00100000b	; Bit a 1 per color zero solid
-	out	(99h),A
-	ld	A,80h + 08h
-	out	(99h),A
+	ld	A,(VDP_REG+8)
+	;  5    TP    Transparent from palette     (0=Normal, 1=Color 0 is solid)
+	or	00100000b	; Transparent from palette
+	m_WRITE_DATA_REGISTER 08h	; Register 8: Mode register 2
 	ret
 
-
-; ////////////////////////////////////////
-; //////// SCREEN_SET_HBLANK /////////////
-; ////////////////////////////////////////
-
-; Habilita H-Blank en linea especifica i desactiva V-Blank
-
-; A = linea de pantalla para H-Blank
-
-; Cal RAM : HBLANK_LINE
-; Toca	  : B
-; Retorna : res
-; Usa fun.: cap
-
+; Activa H-Blank
+; Requereix interrupcions deshabilitades
 SCREEN_SET_HBLANK:
-	; R0 = 06h
-	; bit 1    M3    Mode M3 (Screen 2,5,7,8)
-	; bit 2    M4    Mode M4 (Screen 4,5,8,0Hi) (MSX2 only)
-	ld	B,A
-IF USE_SCREEN == 5
-	ld	A,06h
-ENDIF
-IF USE_SCREEN == 4
-	ld	A,04h
-ENDIF
-	or	00010000b	; Bit  4 IE1   H-Blank Interrupt Enable
-	out	(99h),A
-	ld	A,80h + 0h
-	out	(99h),A
-	; R1 = 62h
-	; bit  1    SZ    Sprite size (0=8x8, 1=16x16)
-	; bit  5    IE0   V-Blank Interrupt Enable   (0=Disable, 1=Enable)
-	; bit  6    BLK   Screen output control      (0=Disable, 1=Enable)
-	ld	A,62h
-	and	11011111b	; Bit 5 IE0  V-Blank Interrupt (0=Disable)
-	out	(99h),A
-	ld	A,80h + 1h
-	out	(99h),A
-	; R19 0 R13h = B
-	ld	A,B		; 0-7 IL0-7 Interrupt line(0-255 in 50 Hz mode)
-	ld	(HBLANK_LINE),A
-	out	(99h),A
-	ld	A,80h + 13h
-	out	(99h),A
+	ld	A,(VDP_REG+0)
+	;  4    IE1   H-Blank Interrupt Enable   (MSX2 only) (see also VDP Reg 13h)
+	or	00010000b	; H-Blank Interrupt Enable
+	m_WRITE_DATA_REGISTER 00h	; Register 0: Mode register 0
 	ret
+
+; Desactiva H-Blank
+; Requereix interrupcions deshabilitades
+SCREEN_UNSET_HBLANK:
+	ld	A,(VDP_REG+0)
+	;  4    IE1   H-Blank Interrupt Enable   (MSX2 only) (see also VDP Reg 13h)
+	and	11101111b	; H-Blank Interrupt Enable
+	m_WRITE_DATA_REGISTER 00h	; Register 0: Mode register 0
+	ret
+
+

@@ -55,7 +55,6 @@ SPRT_COLOR_INI:
 	inc	DE
 	ld	(HL),A
 	ldir
-	m_INC16 SPRCOLRAM_UPDATE
 	ret
 
 ; ////////////////////////////////
@@ -132,9 +131,6 @@ PUTSPRT:
 	pop	DE	; Recupero destinacio del color
 	push	BC
 	ld	BC,16
-	m_CHANGE_TOSUBPAGE SPRITES_PAGE,SPRITES_PAGE_DIR
 	ldir
-	m_RECOVER_SUBPAGE SPRITES_PAGE_DIR
 	pop	BC
-	m_INC16	SPRCOLRAM_UPDATE
 	ret
