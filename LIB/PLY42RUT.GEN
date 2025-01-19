@@ -1,0 +1,1412 @@
+;-------------------------
+; rutina player
+; by JamQue / TPM
+; revision 4.2 [Ago-2018]
+;	Varios ZMARAM per tenir multiples veus, musiques calculant-se
+;	ZMA_MAXVOICE marca el màxim de memòria a reservar
+;	ZMARAM + ZMA_BUFFERSIZE * N_VOICE indica direcció de memória on hi ha
+;	  les dades de la veu.
+;	ZMA_CURVOICE Marca quina es la veu que ha de sonar.
+;	  S'ha de iniciar al joc.
+; revision 4.1 [Jul-2011]
+;	Fusion en ZMARAM de variables, todo en un solo bloque de
+;	  117 bytes de RAM
+;	PLAY_INI pasa a tener 3 parametros IX[SONG],IY[ZMARAM],HL[SAMPLES]
+;	PLAYER pasa a tener internamente las llamadas a PLY_ROW,PLY_UPEN,PLY_PSG
+;	En la rutina de timer poner solo CALL PLAYER
+;	PLA_FLG debera llamarse desde el programa como ZMARAM
+;	  [que es su primer byte] para activar o desactivar el player
+;	[Ago-2011]
+;	Nomes accepta ZMB [Binari]: Masques de Pattern son punters relatius
+;	  i salts [0x0E] tambè relatius.
+;-----RUTINAS EXTERNAS-------------------------
+; PLAYER -> Rutina E al Timer : de PSG RAM a PSG Real.
+; 	Entra ->  IX -> Punter de posició de dades de song [solo para PLAY_INI]
+;		  HL -> Punter de posició dels Samples	 [solo para PLAY_INI]
+;		  IY -> Punter ZMARAM
+;		  D -> 	Si 0 PLAYER Normal
+;			Si 1 Solo Update_PSG. No abanzar en la song.
+;			Si 2 Se llama a PLAY_INI
+;			Si 3 Update de song pero no de PSG
+;			  [porque hay FX-SIMPLE] sin tocar el PSG real
+;-----RUTINAS INTERNAS---llamadas por PLAYER---
+; PLAY_INI -> Inicia player de una song amb els valors incials
+; 	Entra ->	IX -> Punter de posició de dades de song
+;			HL -> Punter de posició dels Samples
+;			IY -> Punter ZMARAM
+; PLY_ROW  -> Rutina A LOAD ROW
+; PLY_UPEN -> Rutina B : Update de Envelops
+; PLY_PSG  -> Rutina D i C juntes : Calculs dels PSGRAM y control de Mutes +
+;----------------------
+;Datos fijos :
+;VNOTAS		Bytes de valors de notas pels registres del PSG
+;----------------------
+;Variables externes:
+;ZMARAM		ds	117
+;Interiormente corresponden a las siguientes posiciones
+;00	PLA_FLG:	byte		; Flag de sona / no sona
+;01	PLA_BPM:	byte		; Contador de BPM decremental
+;02	PLA_BPMS:	byte		; Semaforo BPM a [1] Load Row
+;0304	PLA_MUSI:	word		; Posicio Inicial de la song
+;0506	PLA_MUS: 	word		; Punter posicio de la song,
+					;   augmenta en cada nota
+;07	PLA_NPATI:	byte		; Total de Patterns de la song
+;08	PLA_NPAT:	byte		; Pattern Actual
+;091011 PLA_VCH:	ds	3	; Channel A-B-C Vol ON/OFF [1 On/0 Off]
+;121314	PLA_VCHV:	ds	3	; Volum Ch.A-B-C per fer l'equalitzador.
+;151617	PLA_SMP:	ds	3	; Num.Sample a Channel A-B-C
+;18	PLA_RRR6:	byte		; Contador de rotacio de R6
+;19	PLA_UPENS:	byte		; Semaforo comparativo per
+					;   Update Envelope
+;2021	PLA_SNDS:	word		; Puntero de Samples para PSG
+;---
+;22	PLACASTF:	byte		; 0 Chn.A Envelop Freq Status
+;2324	PLACAMMF:	word		;12 Chn.A Envelop Freq Min
+;2526	PLACAMAF:	word		;34 Chn.A Envelop Freq Max
+;27	PLACAOPF:	byte		; 5 Chn.A Envelop Freq Offset Porta Note
+;28	PLACAVEF:	byte		; 6 Chn.A Envelop Freq Velocity
+;29	PLACAICF:	byte		; 7 Chn.A Envelop Freq Increment
+;3031	PLACAACF:	word		;89 Chn.A Envelop Freq Actual
+;32	PLACACFF:	byte		;10 Chn.A Envelop Freq Counter Flag
+
+;33	PLACASTV:	byte		;11 Chn.A Envelop Volumen Status
+;34	PLACAMMV:	byte		;12 Chn.A Envelop Volumen Max
+;35	PLACAVEV:	byte		;13 Chn.A Envelop Volumen Velocity
+;36	PLACAICV:	byte		;14 Chn.A Envelop Volumen Increment
+;37	PLACAACV:	byte		;15 Chn.A Envelop Volumen Actual
+;38	PLACACFV:	byte		;16 Chn.A Envelop Volumen Counter Flag
+
+;39	PLACASTN:	byte		;17 Chn.A Envelop Noise Status
+;40	PLACAMMN:	byte		;18 Chn.A Envelop Noise Max
+;41	PLACAVEN:	byte		;19 Chn.A Envelop Noise Velocity
+;42	PLACAICN:	byte		;20 Chn.A Envelop Noise Increment
+;43	PLACAACN:	byte		;21 Chn.A Envelop Noise Actual
+;44	PLACACFN:	byte		;22 Chn.A Envelop Noise Counter Flag
+
+;45	PLACAOBF:	byte		;23 Chn.A Base PSG Offset Note
+;46	PLACABR8:	byte		;24 Chn.A Base PSG R8 Volumen
+;47	PLACABR6:	byte		;25 Chn.A Base PSG R6 Noise
+;48	PLACAR7:	byte		;26 Chn.A PSG R7
+;49	PLACANOT:	byte		;27 Chn.A VNOTAS Pointer
+
+;---
+;50	PLACBSTF:	byte		; 0 Chn.B Envelop Freq Status
+;5152	PLACBMMF:	word		;12 Chn.B Envelop Freq Min
+;5354	PLACBMAF:	word		;34 Chn.B Envelop Freq Max
+;55	PLACBOPF:	byte		; 5 Chn.B Envelop Freq Offset Porta Note
+;56	PLACBVEF:	byte		; 6 Chn.B Envelop Freq Velocity
+;57	PLACBICF:	byte		; 7 Chn.B Envelop Freq Increment
+;5859	PLACBACF:	word		;89 Chn.B Envelop Freq Actual
+;60	PLACBCFF:	byte		;10 Chn.B Envelop Freq Counter Flag
+
+;61	PLACBSTV:	byte		;11 Chn.B Envelop Volumen Status
+;62	PLACBMMV:	byte		;12 Chn.B Envelop Volumen Max
+;63	PLACBVEV:	byte		;13 Chn.B Envelop Volumen Velocity
+;64	PLACBICV:	byte		;14 Chn.B Envelop Volumen Increment
+;65	PLACBACV:	byte		;15 Chn.B Envelop Volumen Actual
+;66	PLACBCFV:	byte		;16 Chn.B Envelop Volumen Counter Flag
+
+;67	PLACBSTN:	byte		;17 Chn.B Envelop Noise Status
+;68	PLACBMMN:	byte		;18 Chn.B Envelop Noise Max
+;69	PLACBVEN:	byte		;19 Chn.B Envelop Noise Velocity
+;70	PLACBICN:	byte		;20 Chn.B Envelop Noise Increment
+;71	PLACBACN:	byte		;21 Chn.B Envelop Noise Actual
+;72	PLACBCFN:	byte		;22 Chn.B Envelop Noise Counter Flag
+
+;73	PLACBOBF:	byte		;23 Chn.B Base PSG Offset Note
+;74	PLACBBR9:	byte		;24 Chn.B Base PSG R9 Volumen
+;75	PLACBBR6:	byte		;25 Chn.B Base PSG R6 Noise
+;76	PLACBR7:	byte		;26 Chn.B PSG R7
+;77	PLACBNOT:	byte		;27 Chn.B VNOTAS Pointer
+;---
+;78	PLACCSTF:	byte		; 0 Chn.C Envelop Freq Status
+;7980	PLACCMMF:	word		;12 Chn.C Envelop Freq Min
+;8182	PLACCMAF:	word		;34 Chn.C Envelop Freq Max
+;83	PLACCOPF:	byte		; 5 Chn.C Envelop Freq Offset Porta Note
+;84	PLACCVEF:	byte		; 6 Chn.C Envelop Freq Velocity
+;85	PLACCICF:	byte		; 7 Chn.C Envelop Freq Increment
+;8687	PLACCACF:	word		;89 Chn.C Envelop Freq Actual
+;88	PLACCCFF:	byte		;10 Chn.C Envelop Freq Counter Flag
+
+;89	PLACCSTV:	byte		;11 Chn.C Envelop Volumen Status
+;90	PLACCMMV:	byte		;12 Chn.C Envelop Volumen Max
+;91	PLACCVEV:	byte		;13 Chn.C Envelop Volumen Velocity
+;92	PLACCICV:	byte		;14 Chn.C Envelop Volumen Increment
+;93	PLACCACV:	byte		;15 Chn.C Envelop Volumen Actual
+;94	PLACCCFV:	byte		;16 Chn.C Envelop Volumen Counter Flag
+
+;95	PLACCSTN:	byte		;17 Chn.C Envelop Noise Status
+;96	PLACCMMN:	byte		;18 Chn.C Envelop Noise Max
+;97	PLACCVEN:	byte		;19 Chn.C Envelop Noise Velocity
+;98	PLACCICN:	byte		;20 Chn.C Envelop Noise Increment
+;99	PLACCACN:	byte		;21 Chn.C Envelop Noise Actual
+;100	PLACCCFN:	byte		;22 Chn.C Envelop Noise Counter Flag
+
+;101	PLACCOBF:	byte		;23 Chn.C Base PSG Offset Note
+;102	PLACCBRA:	byte		;24 Chn.C Base PSG R10 Volumen
+;103	PLACCBR6:	byte		;25 Chn.C Base PSG R6 Noise
+;104	PLACCR7:	byte		;26 Chn.C PSG R7
+;105	PLACCNOT:	byte		;27 Chn.C VNOTAS Pointer
+;---
+;106	PSGRAM:		ds	11	; Copia RAM del PSG R0-R10
+; 0 +1 +2 +3 +4 +5 +6 +7 +8 +9 +10
+;R0-R1-R2-R3-R4-R5-R6-R7-R8-R9-R10
+;----------------------
+;116 [117 bytes en total]
+;----------------------
+
+;----------------------
+; PLAYER -> Rutina E al Timer : de PSG RAM a PSG Real.
+; 	Entra -> IX -> Punter de posicio de dades de song
+;			[solo para PLAY_INI]
+;		 HL -> Punter de posicio dels Samples  [solo para PLAY_INI]
+;		 IY -> Punter ZMARAM
+;		 D  -> 	Si 0 PLAYER Normal
+;			Si 1 Solo Update_PSG. No avanzar en la song.
+;			Si 2 Se llama a PLAY_INI
+;			Si 3 Update de song pero no de PSG
+;			   [porque hay FX-SIMPLE] sin tocar el PSG real
+;	Surt  ->
+;	Modif ->	A,B,C,HL
+;----------------------
+
+PLAYER:
+	ld	A,D
+	cp	2
+	jr	Z,PLAY_INI
+
+	ld	A,(IY)		; Carga PLA_FLG
+	cp	1
+	jr	Z,.GO		; Si PLA_FLG=1 ->Continua en PLAYER
+	ret			; Sale de la rutina MUSIC OFF
+
+.GO:
+	ld	A,(IY+1)	; 01 Carga PLA_BPM
+	dec	A
+	ld	(IY+1),A
+	or	A
+	jr	Z,.ON_ROW  ; Si PLA_BPM=0 -> Pongo a 1 el semaforo de LEER ROW
+	jr	.TOPSG	    ; Solo Volca el PSGRAM a PSG.
+
+.ON_ROW:
+	ld	A,1
+	ld	(IY+2),A	; 02 PLA_BPMS Pongo a 1 el semaforo de LEER ROW
+.TOPSG:
+	; Caso opcion 3 - Update de song pero no de PSG [porque hay FX-SIMPLE]
+	ld	A,D
+	cp	3
+	jr	Z,.ONLYUPDATE	; Salto a solo hacer update interno
+				;   sin tocar el PSG real
+
+	ld	BC,106
+	push	IY
+	pop	HL		; ld HL,IY
+	add	HL,BC		;106 PSGRAM
+	ld	BC,0700h	; ld B,7   ld c,0
+.LOOP1:
+	ld	A,C
+	out	(0A0h),A
+	ld	A,(HL)
+	out	(0A1h),A
+	inc	C
+	inc	HL
+	djnz	.LOOP1
+
+	ld	A,C		; Tratamiento especial Registro 7
+	out	(0A0h),A
+	in	A,(0A2h)
+	and	11000000b
+	ld	B,A
+	ld	A,(HL)
+	and	00111111b
+	or	B
+	ld	B,A
+	ld	A,C
+	out	(0A0h),A
+	ld	A,B
+	out	(0A1h),A
+
+	inc	HL
+	inc	C
+	ld	B,3
+.LOOP2:
+	ld	A,C
+	out	(0A0h),A
+	ld	A,(HL)
+	and	00001111b	; Mascara pels volums R8-R9-R10
+	out	(0A1h),A
+	inc	C
+	inc	HL
+	djnz	.LOOP2
+
+	ld	A,D
+	cp	1
+	ret	z		; D -> Si 1 Solo Update_PSG.
+				;   No abanzar en la song.
+
+.ONLYUPDATE:
+	ld	A,(IY+2)	; 02 PLA_BPMS
+	cp	1
+	jr	nz,.NO_NEXTROW
+	call	PLY_ROW
+.NO_NEXTROW:
+	call	PLY_UPEN
+	call 	PLY_PSG
+
+	ret
+
+;------INTERNAS--------
+;----------------------
+; PLAY_INI -> Inicia player d'una song amb els valors incials
+; 	Entra ->	IX -> Punter de posicio de dades de song
+;			HL -> Punter de posicio dels Samples
+;			IY -> Punter ZMARAM
+;	Surt  ->	Variables de ZMARAM
+;	Modif ->	A,B,C,DE,HL,IX,IY
+;----------------------
+PLAY_INI:	; Inicializacio de variables del PLAYER de MUSICA
+
+	ld	(IY+20),L	; 2021 PLA_SNDS Guarda punter dels Samples
+	ld	(IY+21),H	; 2021 PLA_SNDS Guarda punter dels Samples
+
+	ld	A,IXl
+	ld	L,A
+	ld	(IY+3),A   ; 0304 PLA_MUSI Recorda inici de dades de la song
+	ld	A,IXh
+	ld	H,A
+	ld	(IY+4),A   ; 0304 PLA_MUSI Recorda inici de dades de la song
+
+	; Sumem pos del primer pattern a PLA_MUSI [Carregat a HL]
+	ld	E,(IX+1)
+	ld	D,(IX+2)
+	add	HL,DE
+	ld	(IY+5),L	; 0506 PLA_MUS Carga puntero musica a PLA_MUS
+	ld	(IY+6),H	; 0506 PLA_MUS Carga puntero musica a PLA_MUS
+
+	ld	A,(IX)
+	ld	(IY+7),A	; 07 PLA_NPATI Carrega Total de Patterns
+
+	xor	A
+	ld	(IY),A	   ; 00 PLA_FLG Activa para entrar en rutina PLAYER
+	ld	(IY+8),A   ; 08 PLA_NPAT attern Actual
+	ld	(IY+12),A  ; 12 PLA_VCHV Volum Ch.A-B-C per l'equalitzador.
+	ld	(IY+13),A  ; 13 PLA_VCHV+1 Volum Ch.A-B-C per l'equalitzador.
+	ld	(IY+14),A  ; 14 PLA_VCHV+2 Volum Ch.A-B-C per l'equalitzador.
+	ld	(IY+15),A	; 15 PLA_SMP Num.Sample a Channel A-B-C
+	ld	(IY+16),A	; 16 PLA_SMP+1 Num.Sample a Channel A-B-C
+	ld	(IY+17),A	; 17 PLA_SMP+2 Num.Sample a Channel A-B-C
+	ld	(IY+18),A	; 18 PLA_RRR6 Contador de rotacio de R6
+	ld	(IY+19),A	; 19 PLA_UPENS Semaforo comparativo per
+				;    Update Envelope
+	call	PLY_MUTE_REGS
+				; Poso a zero els PSGRAM
+	ld	(IY+106),A	; 106 PSGRAM R0
+	ld	(IY+107),A	; 107 PSGRAM R1
+	ld	(IY+108),A	; 108 PSGRAM R2
+	ld	(IY+109),A	; 109 PSGRAM R3
+	ld	(IY+110),A	; 110 PSGRAM R4
+	ld	(IY+111),A	; 111 PSGRAM R5
+	ld	(IY+112),A	; 112 PSGRAM R6
+	ld	(IY+113),3Fh	; 113 PSGRAM R7 mixer
+	ld	(IY+114),A	; 114 PSGRAM R8
+	ld	(IY+115),A	; 115 PSGRAM R9
+	ld	(IY+116),A	; 116 PSGRAM R10
+
+	inc	A
+	ld	(IY+1),A	; 01 PLA_BPM Contador de BPM decremental
+	ld	(IY+2),A	; 02 PLA_BPMS Semaforo BPM a [1] Load Row
+	ld	(IY+9),A	; 09 PLA_VCH Channel A-B-C Vol ON/OFF [1/0]
+	ld	(IY+10),A	; 10 PLA_VCH+1 Channel A-B-C Vol ON/OFF [1/0]
+	ld	(IY+11),A	; 11 PLA_VCH+2 Channel A-B-C Vol ON/OFF [1/0]
+
+	ret
+
+;----------------------
+; PLY_ROW -> Rutina A LOAD ROW
+;	Entra ->	IY -> Punter ZMARAM [Posicio de dades de song PLA_MUS]
+;	Surt
+;	Modif ->	A,B,D,E,HL,IX,IY
+;			PLA_NPAT,PLA_MUS,PLA_FLG,PLA_BPM,PLA_BPMS,PSGRAM
+;----------------------
+PLY_ROW:
+	push	IY
+	pop	HL		; ld 	HL,IY
+	ld	BC,05		; 05 PLA_MUS
+	add	HL,BC
+	ld	A,(HL)
+	ld	IXl,A
+	inc	HL
+	ld	A,(HL)
+	ld	IXh,A		; Carga PLA_MUS a IX
+	ld	A,(IX)
+
+	and	00001111b
+
+	;---------------------------------
+	; switch de comandos de la cancion
+	;---------------------------------
+	;-------------------------
+	; Comando 1 : Nota canal A
+	;-------------------------
+	cp	1
+	jr	nz,PLYR_2
+	ld	A,(IX)		; Guardo el Num. de Sample
+	and	11110000b
+	srl	A
+	srl	A
+	srl	A
+	srl	A
+	ld	(IY+15),A	; 15 PLA_SMP del canal A
+	push	IY
+	pop	IX
+	ld	DE,22
+	add	IX,DE		; 22 PLACASTF
+	jp	PLYR_LI
+PLYR_2:
+	;-------------------------
+	; Comando 2 : Nota canal B
+	;-------------------------
+	cp	2
+	jr	nz,PLYR_3
+	ld	A,(IX)		; Guardo el Num. de Sample
+	and	11110000b
+	srl	A
+	srl	A
+	srl	A
+	srl	A
+	ld	(IY+16),A	; 16 PLA_SMP+1 del canal A
+	push	IY
+	pop	IX
+	ld	DE,50
+	add	IX,DE		; 50 PLACBSTF
+	jp	PLYR_LI
+PLYR_3:
+	;-------------------------
+	; Comando 3 : Nota canal C
+	;-------------------------
+	cp	3
+	jr	nz,PLYR_8
+	ld	A,(IX)		; Guardo el Num. de Sample
+	and	11110000b
+	srl	A
+	srl	A
+	srl	A
+	srl	A
+	ld	(IY+17),A	; 17 PLA_SMP+2 del canal A
+	push	IY
+	pop	IX
+	ld	DE,78
+	add	IX,DE		; 78 PLACCSTF
+	jp	PLYR_LI
+PLYR_8:
+	;----------------------------
+	; Comando 8 : Volumen canal A
+	;----------------------------
+	cp	8
+	jr	nz,PLYR_9
+	push	IY
+	pop	HL
+	ld	DE,37
+	add	HL,DE		; 37 PLACAACV
+	jp	PLYR_LV
+PLYR_9:
+	;----------------------------
+	; Comando 9 : Volumen canal B
+	;----------------------------
+	cp	9
+	jr	nz,PLYR_A
+	push	IY
+	pop	HL
+	ld	DE,65
+	add	HL,DE		; 65 PLACBACV
+	jp	PLYR_LV
+PLYR_A:
+	;-----------------------------
+	; Comando Ah : Volumen canal C
+	;-----------------------------
+	cp	0Ah
+	jr	nz,PLYR_C
+	push	IY
+	pop	HL
+	ld	DE,93
+	add	HL,DE		; 93 PLACCACV
+	jp	PLYR_LV
+PLYR_C:
+	;-------------------------
+	; Comando Ch : JMP Pattern
+	;-------------------------
+	cp	0Ch
+	jr	nz,PLYR_D	; Final de Pattern prepara seguent
+	ld	A,(IY+7)	; 7 PLA_NPATI
+	ld	B,A
+	ld	A,(IY+8)	; 8 PLA_NPAT
+	inc	A
+	cp	B
+	jr	z,.STOP_MUSIC	; Si PLA_NPAT = PLA_NPATI ATURA song
+				;   [No hi ha Loop Comando Eh]
+
+PLYR_C2:
+	ld	(IY+8),A	; 8 PLA_NPAT Guardo Pattern actual
+	ld	A,(IY+3)	; 3 PLA_MUSI Carrega seguent pattern
+	ld	L,A
+	ld	A,(IY+4)	; 4 PLA_MUSI+1
+	ld	H,A
+	push	HL		; Guardo inici de song per sumar mes aball [ZMB]
+	inc	HL		; Salto el byte de NPAT del ZMB.
+				;    Soc al inici de Ordre de Patterns
+	ld	A,(IY+8)	; 8 PLA_NPAT
+	sla	A		; Multiplica x2 el pattern q toca
+	ld	E,A
+	ld	D,0
+	add	HL,DE		; Suma al punter de la song
+	ld	E,(HL)		; Agafa seguent punter de la llista de patterns
+	inc	HL
+	ld	D,(HL)
+	pop	HL		; Recupero PLA_MUSI
+	add	HL,DE		; Posicio relativa en ZMB [cal sumar increment]
+	ld	(IY+5),L	; 5 PLA_MUS Guarda/actualitza PLA_MUS
+	ld	(IY+6),H	; 6 PLA_MUS+1
+	jp	PLY_ROW
+PLYR_D:
+	;------------------------
+	; Comando Dh : STOP MUSIC
+	;------------------------
+	cp	0Dh
+	jr	nz,PLYR_E	; STOP MUSIC
+.STOP_MUSIC:
+	ld	A,00111111b
+	ld	(IY+113),A	; 113 PSGRAM+7 Apaga todos los canales
+				;   por R7 del PSG
+	xor	A
+	ld	(IY+114),A	; 114 PSGRAM+8 Apaga todos los canales
+				;   por R8,R9,R10 del PSG
+	ld	(IY+115),A	; 115 PSGRAM+9
+	ld	(IY+116),A	; 116 PSGRAM+10
+	ld	(IY+2),A	; 2 PLA_BPMS Pongo a 0 el semaforo de LEER ROW
+	ld	D,1
+	call	PLAYER		; SOLO Update PSG Real amb PSGRAM
+	xor	A
+	ld	(IY),A		; Pone 0 PLA_FLG a 0, STOP MUSIC next Interr.
+	ld	A,(ZMA_CURVOICE); Verifiquem que si estem en un canal que no es
+	or	A		; el 0, decrementem el ZMA_CURVOICE per
+	ret	z		; continuar sonant en la seguent veu.
+	dec	A
+	ld	(ZMA_CURVOICE),A
+	ret			; Surt de la rutina per fi de cançó
+PLYR_E:
+	;----------------------------
+	; Comando Eh : JMP TO PATTERN
+	;----------------------------
+	cp	0Eh
+	jr	NZ,PLYR_F	; Si byte1=0Eh -> Salto de PLA_MUS
+	ld	A,(IX+1)	; A <- byte2 Primer el byte baix
+	jr	PLYR_C2		; Es agafar el next pattern y fer un CMD Ch ;]
+				;  [que facil]
+
+PLYR_F:
+	;----------------------------------
+	; Comando Fh : Fin de ROW y SET BPM
+	;----------------------------------
+	cp	0Fh
+	jr	nz,PLYR_NXT	; Si byte1=0Eh -> Salto de PLA_MUS
+	ld	A,(IX)		; Lectura del nibble Alt [BPM]
+	and 	11110000b
+	srl	A
+	srl	A
+	srl	A
+	srl	A
+	ld	(IY+1),A	; 1 PLA_BPM
+	ld	L,(IY+5)	; 5 PLA_MUS Coge PLA_MUS
+	ld	H,(IY+6)	; 6 PLA_MUS+1 Coge PLA_MUS
+	inc	HL		; Le suma 1
+	ld	(IY+5),L	; 5 PLA_MUS Actualitza PLA_MUS
+	ld	(IY+6),H	; 6 PLA_MUS+1
+	xor	A
+	ld	(IY+2),A	; 2 PLA_BPMS Pongo a 0 el semaforo de LEER ROW
+	ret
+PLYR_NXT:
+	ld	L,(IY+5)	; 5 PLA_MUS Coge PLA_MUS
+	ld	H,(IY+6)	; 6 PLA_MUS+1 Coge PLA_MUS
+	inc	HL		; Es un byte raro q no interpreto. [4,5,6,7,B]
+	ld	(IY+5),L	; 5 PLA_MUS Actualitza PLA_MUS
+	ld	(IY+6),H	; 6 PLA_MUS+1
+	jp	PLY_ROW
+
+PLYR_LV:
+	;----------------------------------
+	; Funcion  : LV: Volumen Level
+	;	 IN: IX Byte volumen
+	;	OUT: (HL)
+	;----------------------------------
+	ld	A,(IX)
+	and	11110000b
+	srl	A
+	srl	A
+	srl	A
+	srl	A
+	ld	(HL),A		; Actualitza Actual Volumen
+	jp	PLYR_NXT
+
+PLYR_LI:
+	;----------------------------------
+	; Funcion  : LI: Load Instrument
+	;	 IN: IX Canal A,B,C
+	;	OUT:
+	;----------------------------------
+	push	IY		; Se va tocar IY. Guardo ZMARAM
+
+	ld	L,(IY+5)	; 5 PLA_MUS
+	ld	H,(IY+6)	; 6 PLA_MUS+1
+	ld	A,(HL)
+	and	11110000b
+	sub	00010000b	; Paso numero de instrument de 1h-10h a 0h-Fh
+	srl	A
+	srl	A
+	srl	A
+	srl	A
+;------ JURARIA QUE SOBRA ya que srl toca Flag Z si A=0
+	;cp	0
+	jr	z,PLYR_LI2	; Si es Zero no multiplico per X,
+				;   deixo el zero [X=12 bytes/instrumento]
+	ld	B,A
+	xor	A
+PLYR_LI1:
+	add	A,12		; 12 bytes/instrumento
+	djnz	PLYR_LI1
+PLYR_LI2:
+	ld	DE,20		; 20 PLA_SNDS
+	add	IY,DE		; IY -> Puntero Array Instrumentos
+	push	IX		; Guardo pq lo modifico al load puntero SAMPLES
+	push	AF
+	ld	A,(IY)
+	ld	IXl,A
+	inc	IY
+	ld	A,(IY)
+	ld	IXh,A
+	push	IX
+	pop	IY		; ld IY,IX
+	pop	AF		; Recupero valors
+	pop	IX
+	ld	E,A		; Sumo Offset del instrumento seleccionado
+	ld	D,0
+	add	IY,DE
+	; IX -> Canal A,B,C
+	; IY -> Puntero Instrumento con Offset del instrumento seleccionado
+	; HL -> PLA_MUS
+	ld	A,(IY)
+	ld	(IX+23),A	; OBF
+	ld	A,(IY+1)
+	and	00001111b
+	ld	(IX+13),A	; VEV
+	ld	A,(IY+1)
+	and	11110000b
+	srl	A
+	srl	A
+	srl	A
+	srl	A
+	ld	(IX+24),A	; BR8
+	ld	A,(IY+2)
+	ld	(IX+6),A	; VEF
+	ld	A,(IY+3)
+	ld	(IX+19),A	; VEN
+	ld	A,(IY+4)
+	ld	(IX+25),A	; BR6
+	ld	A,(IY+5)
+	and	00001111b
+	ld	(IX),A		; STF
+	ld	A,(IY+5)
+	and	11110000b
+	srl	A
+	srl	A
+	srl	A
+	srl	A
+	ld	(IX+11),A	; STV
+				; Depende si estoy Up/Down recargo Actual
+				;   con MAX o con 0
+	bit	0,A		; Up [1] / Down [0]
+	jr	z,PLYR_LI5
+				; Si estic fent UP -> Actual = 0
+	ld	(IX+15),0	; ACV
+	jr	PLYR_LI6
+PLYR_LI5:			; Si estic fent DOWN -> Actual = MAX - Base
+	ld	A,(IY+9)
+	srl	A
+	srl	A
+	srl	A
+	srl	A
+	sub	(IX+24)
+	ld	(IX+15),A	; ACV
+PLYR_LI6:
+	ld	A,(IY+6)
+	and	00001111b
+	ld	(IX+26),A	; R7
+	ld	A,(IY+6)
+	and	11110000b
+	srl	A
+	srl	A
+	srl	A
+	srl	A
+	ld	(IX+17),A	; STN
+				; Depende si estoy Up/Down recargo Actual con
+				;  MAX o con 0
+	bit	0,A		; Up [1] / Down [0]
+	jr	z,PLYR_LI7
+				; Si estic fent UP -> Actual = 0
+	ld	(IX+21),0	; ACN
+	jr	PLYR_LI8
+PLYR_LI7:			; Si estic fent DOWN -> Actual = MAX - Base
+	ld	A,(IY+10)
+	sub	(IX+26)
+	ld	(IX+21),A	; ACN
+PLYR_LI8:
+	ld	A,(IY+7)
+	ld	(IX+5),A	; OPF
+	ld	A,(IY+8)
+	ld	(IX+7),A	; ICF
+	ld	A,(IY+9)
+	and	00001111b
+	ld	(IX+14),A	; ICV
+	ld	A,(IY+9)
+	srl	A
+	srl	A
+	srl	A
+	srl	A
+	ld	(IX+12),A	; MMV
+	ld	A,(IY+10)
+	ld	(IX+18),A	; MMN
+	ld	A,(IY+11)
+	ld	(IX+20),A	; ICN
+	ld	(IX+10),0	; CFF
+	ld	(IX+16),0	; CFV
+	ld	(IX+22),0	; CFN
+
+	inc	HL
+	ld	A,(HL)		; VNota de Track
+	ld	(IX+27),A	; NOTA
+
+	ld	B,IXl		; Al actualitzar ZMARAM, ho recupero del stack
+	ld	C,IXh		;   faig pirueta tecnica. :p
+	push	IY		;   faig pirueta tecnica. :p
+	pop	IX		;   faig pirueta tecnica. :p
+	pop	IY		;   faig pirueta tecnica. :p
+
+	ld	(IY+5),L	; 5 PLA_MUS Guardo byte nota
+	ld	(IY+6),H	; 5 PLA_MUS+1
+
+	push	IY		;   faig pirueta tecnica. :p
+	ld	IXl,B		;   faig pirueta tecnica. :p
+	ld	IXh,C		;   faig pirueta tecnica. :p
+
+	; Recargo Actual con [NOTA] +Offset Base o -Offset Base
+	push	HL
+	ld	C,A
+	ld	A,(IX+23)	;OBF
+	bit	6,A
+	jr	z,PLYR_LI9
+	and	00111111b
+	ld	B,A
+	ld	A,C
+	sub	B
+	jr	nc,PLYR_LIA	; Si no hi ha desbordament al restar Continua
+	xor	A
+	jr	PLYR_LIA
+PLYR_LI9:
+	and	00111111b
+	add	A,C
+	cp	96
+	jr	c,PLYR_LIA	; Si A < 96 Continua
+	ld	A,96		; Nota Maxima 96
+PLYR_LIA:
+	sla	A
+	ld	E,A
+	ld	D,0
+	ld	HL,VNOTAS
+	add	HL,DE
+	ld	E,(HL)
+	inc	HL
+	ld	D,(HL)
+	ld	(IX+8),E	; ACF[L]
+	ld	(IX+9),D	; ACF[H]
+
+	; Preparo MIN Frecuency [Nota Mes alta]
+	ld	A,(IX+27)	;Nota
+	ld	C,A
+	ld	A,(IX+23)	;OBF
+	bit	6,A
+	jr	z,PLYR_LIB
+	and	00111111b
+	ld	B,A
+	ld	A,C
+	sub	B
+	jr	nc,PLYR_LIC	; Si no hi ha desbordament al restar Continua
+	xor	A
+	jr	PLYR_LIC
+PLYR_LIB:
+	and	00111111b
+	add	A,C
+	cp	96
+	jr	c,PLYR_LIC	; Si A < 96 Continua
+	ld	A,96		; Nota Maxima 96
+PLYR_LIC:
+	add	A,(IX+5)
+	cp	96
+	jr	c,PLYR_LID	; Si A < 96 Continua
+	ld	A,96		; Nota Maxima 96
+PLYR_LID:
+	sla	A
+	ld	E,A
+	ld	D,0
+	ld	HL,VNOTAS
+	add	HL,DE
+	ld	E,(HL)
+	inc	HL
+	ld	D,(HL)
+	ld	(IX+1),E	; MMF[L]
+	ld	(IX+2),D	; MMF[H]
+
+	; Preparo MAX Frecuency [Nota mes baixa]
+	ld	A,(IX+27)
+	ld	C,A
+	ld	A,(IX+23)	;OBF
+	bit	6,A
+	jr	z,PLYR_LIE
+	and	00111111b
+	ld	B,A
+	ld	A,C
+	sub	B
+	jr	nc,PLYR_LIF	; Si no hi ha desbordament al restar Continua
+	xor	A
+	jr	PLYR_LIF
+PLYR_LIE:
+	and	00111111b
+	add	A,C
+	cp	96
+	jr	c,PLYR_LIF	; Si A < 96 Continua
+	ld	A,96		; Nota Maxima 96
+PLYR_LIF:
+	sub	(IX+5)
+	jr	nc,PLYR_LI10	; Si no hi ha desbordament al restar Continua
+	xor	A		; Nota Maxima 0
+PLYR_LI10:
+	sla	A
+	ld	E,A
+	ld	D,0
+	ld	HL,VNOTAS
+	add	HL,DE
+	ld	E,(HL)
+	inc	HL
+	ld	D,(HL)
+	ld	(IX+3),E	; MAF[L]
+	ld	(IX+4),D	; MAF[H]
+
+	pop	HL
+	pop	IY		; Recupero ZMARAM
+	jp	PLYR_NXT
+
+;----------------------
+; PLY_UPEN -> Rutina B : Update de Envelops
+;	Entra ->	TIMER_T
+;	Surt
+;	Modif ->	A,D,E,HL
+;----------------------
+PLY_UPEN:
+	;------------
+	; FRECUENCIAS
+	;------------
+	push	IY
+	; Envelop Freq Ch.A
+	push	IY
+	pop	IX
+	ld	DE,22		; 22 PLACASTF
+	add	IX,DE		;Inici de St-MM-VE-IC-AC-CF
+	ld	DE,45		; 45 PLACAOBF
+	add	IY,DE		;Registre del Valor Inicial
+	call	PLYUPFRE
+	;;;;;;;;
+	pop	IY
+	push	IY
+	; Envelop Freq Ch.B
+	push	IY
+	pop	IX
+	ld	DE,50		; 50 PLACBSTF
+	add	IX,DE		;Inici de St-MM-VE-IC-AC-CF
+	ld	DE,73		; 73 PLACBOBF
+	add	IY,DE		;Registre del Valor Inicial
+	call	PLYUPFRE
+	;;;;;;;;
+	pop	IY
+	push	IY
+	; Envelop Freq Ch.C
+	push	IY
+	pop	IX
+	ld	DE,78		; 78 PLACCSTF
+	add	IX,DE		;Inici de St-MM-VE-IC-AC-CF
+	ld	DE,101		; 101 PLACCOBF
+	add	IY,DE		;Registre del Valor Inicial
+	call	PLYUPFRE
+	;;;;;;;;
+	pop	IY
+
+	;----------
+	; VOLUMENES
+	;----------
+	push	IY
+	; Envelop Vol Ch.A
+	push	IY
+	pop	IX
+	ld	DE,33		; 33 PLACASTV
+	add	IX,DE		;Inici de St-MM-VE-IC-AC-CF
+	ld	DE,46		; 46 PLACABR8
+	add	IY,DE		;Registre del Valor Inicial
+	call	PLYUPVOL
+	;;;;;;;;
+	pop	IY
+	push	IY
+	; Envelop Vol Ch.B
+	push	IY
+	pop	IX
+	ld	DE,61		; 61 PLACBSTV
+	add	IX,DE		;Inici de St-MM-VE-IC-AC-CF
+	ld	DE,74		; 74 PLACBBR9
+	add	IY,DE		;Registre del Valor Inicial
+	call	PLYUPVOL
+	;;;;;;;;
+	pop	IY
+	push	IY
+	; Envelop Vol Ch.C
+	push	IY
+	pop	IX
+	ld	DE,89		; 89 PLACCSTV
+	add	IX,DE		;Inici de St-MM-VE-IC-AC-CF
+	ld	DE,102		; 102 PLACCBRA
+	add	IY,DE		;Registre del Valor Inicial
+	call	PLYUPVOL
+	;;;;;;;;
+	pop	IY
+
+	;------------
+	; FREQ. RUIDO [Usa la misma rutina que volumen y algo falla]
+	;------------
+	push	IY
+	; Envelop Noise Ch.A
+	push	IY
+	pop	IX
+	ld	DE,39		; 39 PLACASTN
+	add	IX,DE		;Inici de St-MM-VE-IC-AC-CF
+	ld	DE,47		; 47 PLACABR6
+	add	IY,DE		;Registre del Valor Inicial
+	call	PLYUPVOL
+	;;;;;;;;
+	pop	IY
+	push	IY
+	; Envelop Noise Ch.B
+	push	IY
+	pop	IX
+	ld	DE,67		; 67 PLACBSTN
+	add	IX,DE		;Inici de St-MM-VE-IC-AC-CF
+	ld	DE,75		; 75 PLACBBR6
+	add	IY,DE		;Registre del Valor Inicial
+	call	PLYUPVOL
+	;;;;;;;;
+	pop	IY
+	push	IY
+	; Envelop Noise Ch.C
+	push	IY
+	pop	IX
+	ld	DE,95		; 95 PLACCSTN
+	add	IX,DE		;Inici de St-MM-VE-IC-AC-CF
+	ld	DE,103		; 103 PLACCBR6
+	add	IY,DE		;Registre del Valor Inicial
+	call	PLYUPVOL
+	;;;;;;;;
+	pop	IY
+
+	ld	A,(TIMER_T)
+	ld	(IY+19),A	; 19 PLA_UPENS
+	ret
+
+PLYUPFRE:
+	ld	A,(IX)
+	bit	3,A		;On/Off ?
+	jp	z,PLYUPFREF
+	ld	A,(IX+10)
+	cp	(IX+6)		; Si ContaFlags = Velocitat
+	jr	z,PLYUPFRE0
+	inc	A
+	ld	(IX+10),A
+	ret
+PLYUPFRE0:
+	ld	A,(IX)
+	bit	0,A		;Up[1] o Down[0]
+	jr	nz,PLYUPFRE0U	;Si Up [1] Actual ha de RESTAR ! FRE0D
+
+	; Es Down[0] per tant Sumo i miro MAX
+PLYUPFRE0D:
+	ld	A,(IX+8)	; Actual [L]
+	cp	(IX+3)		; Max [L]
+	jr	nz,PLYUPFRE1D
+	ld	A,(IX+9)	; Actual [H]
+	cp	(IX+4)		; Max [H]
+	jr	z,PLYUPFRE3	; Si Actual = MAX ves a Loop/Rebote
+PLYUPFRE1D:
+	ld	L,(IX+8)	; Actual [L]
+	ld	H,(IX+9)	; Actual [H]
+	ld	E,(IX+7)	; Increment
+	ld	D,0
+	add	HL,DE
+	jr	c,PLYUPFRE3D	; Si overflow al sumar Guarda Max
+	ld	A,H
+	cp	(IX+4)		; Max [H]
+	jr	c,PLYUPFRE4D	; Si Actual [H] < Max [H] -> Guarda Actual
+	jr	z,PLYUPFRE2D	; Si Actual [H] = Max [H] -> compara L
+	jr	PLYUPFRE3D	; Si Cap de les demes per tant
+				;  Actual [H] > Max [H] guarda Max a Actual
+PLYUPFRE2D:
+	ld	A,L
+	cp	(IX+3)
+	jr	c,PLYUPFRE4D	; Si Actual [L] < Max [L] -> Guarda Actual
+PLYUPFRE3D:
+	ld	L,(IX+3)
+	ld	H,(IX+4)	; Guarda Max a Actual
+PLYUPFRE4D:
+	ld	(IX+8),L
+	ld	(IX+9),H	; Guarda Actual
+	jp	PLYUPFREF
+
+	; Es Up[1] per tant Resto i miro MIN
+PLYUPFRE0U:
+	ld	A,(IX+8)	; Actual [L]
+	cp	(IX+1)		; Min [L]
+	jr	nz,PLYUPFRE1U
+	ld	A,(IX+9)	; Actual [H]
+	cp	(IX+2)		; Min [H]
+	jr	z,PLYUPFRE3	; Si Actual = Min ves a Loop/Rebote
+PLYUPFRE1U:
+	ld	L,(IX+8)	; Actual [L]
+	ld	H,(IX+9)	; Actual [H]
+	ld	E,(IX+7)	; Increment
+	ld	D,0
+	sbc	HL,DE
+	jr	c,PLYUPFRE3U	; Si overflow al restar Guarda Min
+	ld	A,H
+	cp	(IX+2)		; Min [H]
+	jr	c,PLYUPFRE3U	; Si Actual [H] < Min [H] -> Guarda Min
+	jr	z,PLYUPFRE2U	; Si Actual [H] = Min [H] -> compara L
+	jr	PLYUPFRE4U	; Si Cap de les demes per tant
+				;   Actual [H] > Min [H] guarda Actual
+PLYUPFRE2U:
+	ld	A,L
+	cp	(IX+1)
+	jr	nc,PLYUPFRE4U	; Si Actual [L] => Min [L] -> Guarda Actual
+				;   sino Guarda Min
+PLYUPFRE3U:
+	ld	L,(IX+1)
+	ld	H,(IX+2)	; Guarda Min a Actual
+PLYUPFRE4U:
+	ld	(IX+8),L
+	ld	(IX+9),H	; Guarda Actual
+	jr	PLYUPFREF
+
+PLYUPFRE3:
+	ld	A,(IX)
+	bit	1,A		; Bit rebote ?
+	jr	z,PLYUPFRE4
+	cpl
+	and	00000001b
+	ld	C,A
+	ld	A,(IX)
+	and	11111110b
+	or	C
+	ld	(IX),A
+	jr	PLYUPFREF
+
+PLYUPFRE4:
+	bit	2,A
+	jr	z,PLYUPFRE5
+	; Recargo Actual con [NOTA] +Offset Base o -Offset Base
+	ld	C,A
+	ld	A,(IX+23)	;OBF
+	bit	6,A
+	jr	z,PLYUPFRE41
+	and	00111111b
+	ld	B,A
+	ld	A,C
+	sub	B
+	jr	nc,PLYUPFRE42	; Si no hi ha desbordament al restar Continua
+	xor	A
+	jp	PLYR_LIA
+PLYUPFRE41:
+	and	00111111b
+	add	A,C
+	cp	96
+	jr	c,PLYUPFRE42	; Si A < 96 Continua
+	ld	A,96		; Nota Maxima 96
+PLYUPFRE42:
+	sla	A
+	ld	E,A
+	ld	D,0
+	ld	HL,VNOTAS
+	add	HL,DE
+	ld	E,(HL)
+	inc	HL
+	ld	D,(HL)
+	ld	(IX+8),E	; ACF[L]
+	ld	(IX+9),D	; ACF[H]
+	jr	PLYUPFREF
+
+PLYUPFRE5:
+	res	3,A
+	ld	(IX),A
+	;jr	PLYUPFREF
+
+PLYUPFREF:
+	ld	(IX+10),0	; Reinicio Counter Flag
+	ret
+
+PLYUPVOL:
+	ld	A,(IX)
+	bit	3,A		; On/Off ?
+	jp	z,PLYUPVOLF
+	ld	A,(IX+5)
+	cp	(IX+2)		; Si Conta Flags = Velocidad
+	jr	z,PLYUPVOL0
+	inc	A
+	ld	(IX+5),A
+	ret
+
+PLYUPVOL0:
+				; Depende si estoy Up/Down miro MAX/Base
+	ld	A,(IX)
+	bit	0,A		; Up [1] / Down [0]
+	jr	z,PLYUPVOL0D
+
+	ld	A,(IX+4)	; Actual
+	add	A,(IY)		; Base
+	cp	(IX+1)		; MAX
+	jr	z,PLYUPVOL3	; Si Actual + Base = MAX -> Control de Loop
+				;   y Rebote
+	jr	PLYUPVOL1U
+PLYUPVOL0D:
+	xor	A
+	cp	(IX+4)
+	jr	z,PLYUPVOL3	; Si Actual = 0 -> Control de Loop y Rebote
+	jr	PLYUPVOL1D
+
+PLYUPVOL1U:
+	ld	A,(IX+4)	; Actual
+	add	A,(IX+3)	; incremento
+	ld	C,A
+	add	A,(IY)		; Base
+	jr	c,PLYUPVOL2U	; Si Actual + Base + Increment  = Overflow ->
+				;    Guarda MAX a Actual
+	cp	(IX+1)
+	jr	c,PLYUPVOL22U	; Si Actual + Base + Increment < MAX ->
+				;    Guarda C a Actual
+PLYUPVOL2U:
+	ld	C,(IX+1)	; Prepara per Guardar MIN/MAX a Actual
+PLYUPVOL22U:
+	ld	(IX+4),C	; Guarda Actual tal com esta a Reg.C
+	jr	PLYUPVOLF
+
+PLYUPVOL1D:
+	ld	A,(IX+4)	; Actual
+	sub	(IX+3)		; decremento
+	jr	c,PLYUPVOL2D
+	ld	C,A
+	or	A		; Equivale a cp	0 a nivel de flags
+	jr	nz,PLYUPVOL22D	; Si Actual != 0 -> Guarda C a Actual
+PLYUPVOL2D:
+	ld	C,0		; Prepara per Guardar 0 a Actual
+PLYUPVOL22D:
+	ld	(IX+4),C	; Guarda Actual tal com esta a Reg.C
+	jr	PLYUPVOLF
+
+PLYUPVOL3:
+	ld	A,(IX)
+	bit	1,A		; Bit Rebote ?
+	jr	z,PLYUPVOL4
+	cpl			; Invierte bits para pasar UP->DOWN o DOWN->UP
+	and	00000001b
+	ld	C,A
+	ld	A,(IX)
+	and	11111110b
+	or	C
+	ld	(IX),A		; Pone nuevo status con UP/DOWN variado
+	jr	PLYUPVOLF
+
+PLYUPVOL4:
+	bit	2,A		; Bit LOOP ?
+	jr	z,PLYUPVOL5
+
+				; Depende si estoy Up/Down recargo Actual
+				;  con [MAX-Base] o con 0
+	ld	A,(IX)
+	bit	0,A		; Up [1] / Down [0]
+	jr	z,PLYUPVOL4D
+	ld	A,(IY)
+	ld	(IX+4),0	; Si estic fent UP -> Actual = 0
+	jr	PLYUPVOLF
+
+PLYUPVOL4D:
+	ld	A,(IX+1)	; Si estic fent DOWN -> Actual = MAX-Base
+	sub	(IY+0)
+	ld	(IX+4),A
+	jr	PLYUPVOLF
+
+PLYUPVOL5:
+	res	3,A		; Off Envelop
+	ld	(IX),A
+	;jp	PLYUPVOLF
+
+PLYUPVOLF:
+	ld	(IX+5),0
+	ret
+
+;----------------------
+; PLY_PSG -> Rutina D i C juntes : Calculs dels PSGRAM y control de Mutes +
+;		Rota R6 On/Off Mixer R7
+;	Entra
+;	Surt
+;	Modif ->	A,D,E,HL
+;----------------------
+PLY_PSG:
+	;-----------------------------
+	; Registros PSG de frecuencias
+	;-----------------------------
+
+	;--- Frecuencia Canal A
+	ld	A,(IY+30)	; 30 PLACAACF Lectura de Actual [Low]
+	ld	(IY+106),A	; 106 PSGRAM
+	ld	A,(IY+31)	; 31 PLACAACF+1 Lectura de Actual [High]
+	ld	(IY+107),A	; 107 PSGRAM+1
+	;--- Frecuencia Canal B
+	ld	A,(IY+58)	; 58 PLACBACF Lectura de Actual [Low]
+	ld	(IY+108),A	; 108 PSGRAM+2
+	ld	A,(IY+59)	; 59 PLACBACF+1 Lectura de Actual [High]
+	ld	(IY+109),A	; 109 PSGRAM+3
+	;--- Frecuencia Canal C
+	ld	A,(IY+86)	; 58 PLACCACF Lectura de Actual [Low]
+	ld	(IY+110),A	; 110 PSGRAM+4
+	ld	A,(IY+87)	; 59 PLACCACF+1 Lectura de Actual [High]
+	ld	(IY+111),A	; 111 PSGRAM+5
+
+	;-----------------------------
+	; Control de Mutes + R8-R9-R10
+	;-----------------------------
+	;--- HL = PLA_VCH es fijo con incrementos
+	push	IY
+	pop	HL
+	ld	DE,9		; 9 PLA_VCH
+	add	Hl,DE
+	push	IY
+	;--- Volumen Canal A
+	push	IY
+	pop	IX
+	ld	DE,22		; 22 PLACASTF
+	add	IX,DE		;Inici de St-MM-VE-IC-AC-CF
+	ld	DE,114		; 114 PSGRAM+8
+	add	IY,DE
+	call	PLY_PSGV
+	;---
+	pop	IY
+	inc	HL		; 9 PLA_VCH+1
+	push	IY
+	;--- Volumen Canal B
+	push	IY
+	pop	IX
+	ld	DE,50		; 50 PLACBSTF
+	add	IX,DE		;Inici de St-MM-VE-IC-AC-CF
+	ld	DE,115		; 115 PSGRAM+9
+	add	IY,DE
+	call	PLY_PSGV
+	;---
+	pop	IY
+	inc	HL		; 9 PLA_VCH+2
+	push	IY
+	;--- Volumen Canal C
+	push	IY
+	pop	IX
+	ld	DE,78		; 78 PLACCSTF
+	add	IX,DE		;Inici de St-MM-VE-IC-AC-CF
+	ld	DE,116		; 116 PSGRAM+10
+	add	IY,DE
+	call	PLY_PSGV
+	;---
+	pop	IY
+
+
+	; Mixer R7
+	ld	A,(IY+104)	; 105 PLACCR7
+	sla	A
+	sla	A
+	ld	B,A
+	ld	A,(IY+76)	; 76 PLACBR7
+	sla	A
+	or	B
+	ld	B,A
+	ld	A,(IY+48)	; 48 PLACAR7
+	or	B
+	ld	C,A		; Guardo temporal el R7 montat a la espera de
+				;   restar Noise
+
+	; Ruido R6
+	ld	A,(IY+18)	; 18 PLA_RRR6 [Registro de rotacion del ruido]
+	or	A		; Equivale a cp	0 a nivel de flags
+	jr	nz,PLYP_7
+	ld	A,(IY+48)	; 48 PLACAR7
+	bit	3,A
+	jr	nz,PLYP_9
+	ld	A,(IY+43)	; 43 PLACAACN
+	ld	B,A
+	ld	A,(IY+47)	; 47 PLACABR6
+	add	A,B
+	and	A,00011111b
+	ld	(IY+112),A	; 112 PSGRAM+6
+	ld	A,C
+	res	3,A
+	set	4,A
+	set	5,A
+	jr	PLYP_10
+
+PLYP_7: cp	1
+	jr	nz,PLYP_8
+	ld	A,(IY+76)	; 76 PLACBR7
+	bit	3,A
+	jr	nz,PLYP_9
+	ld	A,(IY+71)	; 71 PLACBACN
+	ld	B,A
+	ld	A,(IY+75)	; 75 PLACBBR6
+	add	A,B
+	and	A,00011111b
+	ld	(IY+112),A	; 112 PSGRAM+6
+	ld	A,C
+	set	3,A
+	res	4,A
+	set	5,A
+	jr	PLYP_10
+
+PLYP_8:	cp	2
+	jr	nz,PLYP_9
+	ld	A,(IY+104)	; 104 PLACCR7
+	bit	3,A
+	jr	nz,PLYP_9
+	ld	A,(IY+99)	; 99 PLACCACN
+	ld	B,A
+	ld	A,(IY+103)	; 103 PLACCBR6
+	add	A,B
+	and	A,00011111b
+	ld	(IY+112),A	; 112 PSGRAM+6
+	ld	A,C
+	set	3,A
+	set	4,A
+	res	5,A
+	jr	PLYP_10
+
+PLYP_9:	ld	A,C
+PLYP_10:
+	ld	(IY+113),A	; 113 PSGRAM+7
+
+	; Contador rotatiu del Noise
+	ld	A,(IY+18)		; 18 PLA_RRR6
+	inc	A
+	cp	3
+	jr	nz,PLYP_11
+	xor	A
+PLYP_11:
+	ld	(IY+18),A		; 18 PLA_RRR6
+	ret
+
+PLY_PSGF:
+	ld	A,(IX+8)	; Lectura de Actual [Low]
+	ld	(IY),A
+	ld	A,(IX+9)	; Lectura de Actual [High]
+	ld	(IY+1),A
+	ret
+
+PLY_PSGV:
+	ld	A,(HL)
+	or	A		; Equivale a CP 0 por flags
+	jr	nz,PLY_PSGV1
+	jr	PLY_PSGV2
+PLY_PSGV1:
+	ld	B,(IX+24)	; Agafo Valor Base del Volumen del Canal
+	ld	C,(IX+15)	; Agafo Valor Actual del Volumen del Canal
+	;ld	A,(IX+11)	; Agafo Valor del Status del Volumen del Canal
+				;   [No faig us pq sempre ADD]
+	ld	A,B
+	add	A,C
+	jr	nc,PLY_PSGV2
+	ld	A,0fh
+PLY_PSGV2:
+	and	00001111b
+	ld	(IY),A
+	ret
+
+PLY_MUTE_REGS:
+	push	IY
+	push	DE
+	ld	DE,22
+	add	IY,DE
+	ld	B,106-22
+.LOOP:
+	ld	(IY),A
+	inc	IY
+	djnz	.LOOP
+	pop	DE
+	pop	IY
+	ret
+
+VNOTAS:
+	; Octava 0 [0]
+	db	05Dh,0Dh,09Ch,0Ch,0E7h,0Bh,03Ch,0Bh,09Bh,0Ah,002h,0Ah,073h
+	db	9h,0EBh,8h,6Bh,8h,0F2h,7h,080h,7h,014h,7h
+	; Octava 1 [24]
+	db	0AEh,06h,04Eh,06h,0F4h,05h,09Eh,05h,04Dh,05h,001h,05h,0B9h
+	db	4h,075h,4h,35h,4h,0F9h,3h,0C0h,3h,08Ah,3h
+	; Octava 2 [48]
+	db	057h,03h,027h,03h,0FAh,02h,0CFh,02h,0AFh,02h,081h,02h,05Dh
+	db	2h,03Bh,2h,1Bh,2h,0FCh,1h,0E0h,1h,0C5h,1h
+	; Octava 3 [72]
+	db	0ACh,01h,094h,01h,07Dh,01h,068h,01h,053h,01h,040h,01h,02Eh
+	db	1h,01Dh,1h,0Dh,1h,0FEh,0h,0F0h,0h,0E2h,0h
+	; Octava 4 [96]
+	db	0D6h,00h,0CAh,00h,0BEh,00h,0B4h,00h,0AAh,00h,0A0h,00h,097h
+	db	0h,08Fh,0h,87h,0h,07Fh,0h,078h,0h,071h,0h
+	; Octava 5 [120]
+	db	06Bh,00h,065h,00h,05Fh,00h,05Ah,00h,055h,00h,050h,00h,04Ch
+	db	0h,047h,0h,43h,0h,040h,0h,03Bh,0h,039h,0h
+	; Octava 6 [144]
+	db	035h,00h,032h,00h,030h,00h,02Dh,00h,02Ah,00h,028h,00h,026h
+	db	0h,024h,0h,22h,0h,020h,0h,01Eh,0h,01Ch,0h
+	; Octava 7 [168]
+	db	01Bh,00h,019h,00h,018h,00h,016h,00h,015h,00h,014h,00h,013h
+	db	0h,012h,0h,11h,0h,010h,0h,00Fh,0h,00Eh,0h
+
+PLY_INTERRUPT:
+	; Prepara punter del canal actual
+	ld	IY,ZMARAM	; IY -> Punter ZMARAM
+				; Si solo hay una voz, no calculamos.
+	ld	A,(ZMA_CURVOICE)
+	or	A
+	jr	z,.NOCHANGE
+	ld	B,A
+	ld	HL,ZMARAM
+	ld	DE,ZMA_BUFFERSIZE
+.LOOP:
+	ADD	HL,DE
+	djnz	.LOOP
+	push	HL
+	pop	IY	; IY -> Punter ZMARAM
+.NOCHANGE:
+	ld	A,TIMER_MINIPSG
+	call	TIMERCHECK
+	jr	z,.PLAYER_FULL
+	ld	D,3		; D -> Si 3 Update de song pero no de PSG
+				; [porque hay FX-SIMPLE] sin tocar el PSG real
+	call	PLAYER
+	ret
+.PLAYER_FULL:
+	ld	D,0		; D -> Si 1 Solo Update_PSG.
+				;  No avanzar en la song.
+	call	PLAYER		; Llamada al player
+	ret

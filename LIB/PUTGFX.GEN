@@ -6,7 +6,7 @@
 ; ///////// PUTGFX ////////
 ; /////////////////////////
 ; Posa un GFX de tiles en una posicio determinada del BUFFER a RAM
-; IX = 	direccio RAM del GFX (2 BYTES ALÇADA i AMPLE)
+; IX = 	direccio RAM del GFX [2 BYTES ALÇADA i AMPLE]
 ; IY = 	direccion RAM del BUFFER desti
 
 ; Cal RAM : res
@@ -15,28 +15,28 @@
 ; Usa fun.: res
 PUTGFX:
 	; Carrego quantes lineas
-	ld	A,[IX]
+	ld	A,(IX)
 	ld	B,A	; Preparo contador
 	inc	IX
 	; Carrego quantes tiles d'ample
-	ld	A,[IX]
+	ld	A,(IX)
 	ld	E,A	
 	inc	IX
-@@LOOPFILA:
+.LOOPFILA:
 	push	BC
 	ld	B,E	; Numero de tiles
-@@LOOPTILE:
-	ld	A,[IX]	; Copio una tile
-	ld	[IY],A
+.LOOPTILE:
+	ld	A,(IX)	; Copio una tile
+	ld	(IY),A
 	inc	IX
 	inc	IY
-	djnz	@@LOOPTILE
+	djnz	.LOOPTILE
 	ld	A,32
 	sub	E	; 32-Numero de tiles es el incremento de IY
 	ld	C,A
 	add	IY,BC
 	pop	BC
-	djnz	@@LOOPFILA
+	djnz	.LOOPFILA
 
 	ret
 

@@ -2,13 +2,13 @@
 ; ///////// SLIDERI //////////////
 ; ////////////////////////////////
 
-; Cortilla a la derecha
-; Contiene HALTS !. 
+; Transició a la dreta
+; Conte HALTS !.
 
-; A = 	Char de relleno
+; A = 	Char de ompliment
 ; DE =	Pos. del Buffer Inicial
-; B =	Ancho
-; C =	Alto
+; B =	Ample
+; C =	Alçada
 ; HL =	Posicio Buffer pantalla
 
 ; Cal RAM : res
@@ -17,31 +17,34 @@
 ; Usa fun.: res
 
 SLIDERI:
-	add	HL,DE	; Inicio VBUFF
+	add	HL,DE	; Inicia VBUFF
 	
-	; Ancho Ya lo tengo en B
+	; Ample ja ho tinc a B
 	ld	DE,32
 
-@@LOOPY:
+.LOOPY:
 	push	BC
 	push	HL
 
 	push	AF
-	ld	A,1		; Marco para que se actualice VRAM
-	ld	[VBUFF_UPDATE],A
+	m_VBUFF_READY
 	pop	AF
 
 	halt
-	
-	; Alto Ya lo tengo en C
+
+	; Alçada ja la tinc a C
 	ld	B,C
-@@LOOPX:
-	ld	[HL],A
+.LOOPX:
+	ld	(HL),A
 	add	HL,DE
-	djnz	@@LOOPX
+	djnz	.LOOPX
 	pop	HL
 	pop	BC
 	inc	HL
-	djnz	@@LOOPY
-	
+	djnz	.LOOPY
+
+	; Ultima pintada
+	m_VBUFF_READY
+	halt
+
 	ret

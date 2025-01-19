@@ -1,25 +1,35 @@
 ; //////////////////////////////
 ; ///////// SOUND //////////////
 ; //////////////////////////////
+
+; Posa una dada al PSG, tenint en compte el R7 especial
+
 ; A = Registre del PSG
 ; B = Valor a pujar
+
+; Cal RAM : res
+; Toca	  : B
+; Retorna : res
+; Usa fun.: res
+
+
 SOUND:
 	cp	7
-	jp	z, @@SPECIAL7
+	jp	z, .SPECIAL7
 
-	out	[0A0h],A
+	out	(0A0h),A
 	ld	A,B
-	out	[0A1h],A ; Lo subo a registro
-	jp	@@END
-@@SPECIAL7:
-	out	[0A0h],A
-	in	A,[0A2h]	; Lectura del R7
-	and	11000000b	; Mascara para coger dos bits de joys
-	or	B		; Add Byte de B
+	out	(0A1h),A ; Puju a regsitre
+	jp	.END
+.SPECIAL7:
+	out	(0A0h),A
+	in	A,(0A2h)	; Lectura del R7
+	and	11000000b	; Mascara per agafar dos bits de joys
+	or	B		; Afegeix Byte de B
 	ld	B,A
-	ld	A,7		; Actualiza R7 del PSG
-	out	[0A0h],A
+	ld	A,7		; Actualitza R7 del PSG
+	out	(0A0h),A
 	ld	A,B
-	out	[0A1h],A
-@@END:
+	out	(0A1h),A
+.END:
 	ret

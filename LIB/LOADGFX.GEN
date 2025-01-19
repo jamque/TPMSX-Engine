@@ -1,0 +1,138 @@
+; ////////////////////////////////
+; ///////// LOADGFX //////////////
+; ////////////////////////////////
+
+; Posicionamiento de GFX en pantalla
+; Carrega a VRAM tiles de un GFX a BANK 0,1 i 2 Iguals
+; MIDA MAX X*Y < 256
+; utilitza screen2
+; by ARNAU  [amb modificacions]
+
+; C =	1era TILE on posar les dades.
+; IX = 	GFX a posar [X,Y,Data]
+
+; Cal RAM : res
+; Toca	  : BC,DE,HL
+;	    DESACTIVA INTERRUPCIO !!!
+; Retorna : res
+; Usa fun.: IWBVRM [A,BC,D]
+
+LOADGFX:
+	push	AF		; Guardo l'estat actual de EI/DI
+	di
+	; Posar Colors i patterns a VRAM
+	; Primer Multiplico X*Y per saber quants tiles pujar
+	ld	D,(IX)
+	ld	B,(IX+1)
+	xor	A
+.LOOPMUL:
+	add	A,D
+	djnz	.LOOPMUL
+				; Queda en A X*Y
+	ld	HL,0
+	ld	E,C
+	ld	D,0
+	ld	B,8
+.LOOPMUL2:
+	add	HL,DE
+	djnz	.LOOPMUL2
+	ld	DE,VRM_COL	; Punter a BANK0
+	add	HL,DE
+	push	HL
+	pop	DE		; HL->DE Punter a BANK0 + Offset C
+
+	push	IX
+	pop	HL		; IX ->HL
+	inc	HL
+	inc	HL		; Offset del GFX de Colors
+
+	ld	B,A		; Poso a B Tiles a Pujar X*Y
+
+	push	BC		; Guardo el Calculo de X*Y [de B]
+	push	HL
+	push	DE
+	CALL  	IWBVRM		; Pasa blocks de 8 bytes a VRAM Bank0
+
+	pop	HL		; DE->HL Recupero BANK0 + Offset C a HL per
+				; fer suma de 2048
+	ld	DE,2048
+	add	HL,DE
+	push	HL
+	pop	DE		; HL->DE Punter a BANK1 + Offset C
+
+	pop	HL		; Recupero Offset del GFX de Colors
+	pop	BC		; Pop de blocks [de B] de 8 bytes a VRAM
+
+	push	BC		; Guardo el Calculo de X*Y [de B]
+	push	HL
+	push	DE
+	CALL  	IWBVRM		; Pasa blocks de 8 bytes a VRAM Bank1
+
+	pop	HL		; DE->HL Recupero BANK1 + Offset C a HL per
+				; fer suma de 2048
+	ld	DE,2048
+	add	HL,DE
+	push	HL
+	pop	DE		; HL->DE Punter a BANK2 + Offset C
+
+	pop	HL		; Recupero Offset del GFX de Colors
+	pop	BC		; Pop de blocks [de B] de 8 bytes a VRAM
+
+	push	BC		; Guardo el Calculo de X*Y [de B]
+	CALL  	IWBVRM		; Pasa blocks de 8 bytes a VRAM Bank2
+
+;;; PATTERNS----
+	pop	BC		; Pop de C per 1era tile
+	push	BC
+
+	push	HL		; HL Offset del GFX de Patterns
+				; ja queda per IWBVRM a HL, el Guardo
+	ld	HL,0
+	ld	E,C
+	ld	D,0
+	ld	B,8
+.LOOPMUL3:
+	add	HL,DE
+	djnz	.LOOPMUL3
+	ld	DE,VRM_PAT	; Punter a BANK0 Pattern
+	add	HL,DE
+	push	HL
+	pop	DE		; HL->DE Punter a BANK0 + Offset C
+
+	pop	HL		; Recupero Offset del GFX de Patterns
+	pop	BC		; Pop de blocks [de B] de 8 bytes a VRAM
+
+	push	BC		; Guardo el Calculo de X*Y [de B]
+	push	HL
+	push	DE
+	CALL  	IWBVRM		; Pasa blocks de 8 bytes a VRAM Bank0
+
+	pop	HL		; DE->HL Recupero BANK0 + Offset C a HL per
+				; fer suma de 2048
+	ld	DE,2048
+	add	HL,DE
+	push	HL
+	pop	DE		; HL->DE Punter a BANK1 + Offset C
+
+	pop	HL		; Recupero Offset del GFX de Patterns
+	pop	BC		; Pop de blocks [de B] de 8 bytes a VRAM
+
+	push	BC		; Guardo el Calculo de X*Y [de B]
+	push	HL
+	push	DE
+	CALL  	IWBVRM		; Pasa blocks de 8 bytes a VRAM Bank1
+
+	pop	HL		; DE->HL Recupero BANK1 + Offset C a HL per
+				; fer suma de 2048
+	ld	DE,2048
+	add	HL,DE
+	push	HL
+	pop	DE		; HL->DE Punter a BANK2 + Offset C
+
+	pop	HL		; Recupero Offset del GFX de Patterns
+	pop	BC		; Pop de blocks [de B] de 8 bytes a VRAM
+
+	CALL  	IWBVRM		; Pasa blocks de 8 bytes a VRAM Bank2
+
+	pop	AF		; Recupero l'estat de EI/DI
+	ret

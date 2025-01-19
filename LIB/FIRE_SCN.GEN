@@ -1,0 +1,202 @@
+; ////////////////////////////////
+; ///////// FIRE_SCN /////////////
+; ////////////////////////////////
+
+; Efecto fuego en Antorchas 16x16
+; 24,25
+; 26,27
+
+; HL = Offset del buffer
+; VOLCA buffer Tiles concretes de antorchas [24,25,26,27]
+
+; Cal RAM : res
+; Toca	  : B,C,D,E
+; Retorna : res
+; Usa fun.: res
+
+FIRE_SCN:
+	ld	A,(TIMER_T)
+	and	1
+	cp	1
+	jp	nz,FIRE_SCNEND		; Aixi no es tan rapid
+
+	ld	B,5
+	ld	IX,V_TORCHBUFF
+	xor	A
+.LOOPZQ1:				; Poso a Zero els 5 primers files de Q1
+	ld	(IX),A
+	inc	IX
+	djnz	.LOOPZQ1
+
+	ld	B,5
+	ld	IX,V_TORCHBUFF+8
+	xor	A
+.LOOPZQ2:				; Poso a Zero els 5 primers files de Q2
+	ld	(IX),A
+	inc	IX
+	djnz	.LOOPZQ2
+
+	ld	B,8
+	ld	IY,V_TORCHBUFF+16+1
+	ld	IX,V_TORCHBUFF+16
+.LOOPQ3:				; Offset Q3
+	ld	A,(IY)
+	ld	(IX),A
+	inc	IX
+	inc	IY
+	djnz	.LOOPQ3
+	ld	A,R
+	ld	IX,V_TORCHBUFF+23
+	ld	(IX),A
+
+	ld	B,3
+	ld	IY,V_TORCHBUFF+4+1
+	ld	IX,V_TORCHBUFF+4
+.LOOPQ1:				; Offset Q1
+	ld	A,(IY)
+	ld	(IX),A
+	inc	IX
+	inc	IY
+	djnz	.LOOPQ1
+	ld	A,(V_TORCHBUFF+16)
+	ld	(IX),A
+
+	ld	B,8
+	ld	IY,V_TORCHBUFF+24+1
+	ld	IX,V_TORCHBUFF+24
+.LOOPQ4:				; Offset Q4
+	ld	A,(IY)
+	ld	(IX),A
+	inc	IX
+	inc	IY
+	djnz	.LOOPQ4
+	ld	A,R
+	sla	A
+	sla	A
+	sla	A
+	sla	A
+	ld	IX,V_TORCHBUFF+31
+	ld	(IX),A
+
+	ld	B,3
+	ld	IY,V_TORCHBUFF+12+1
+	ld	IX,V_TORCHBUFF+12
+.LOOPQ2:				; Offset Q2
+	ld	A,(IY)
+	ld	(IX),A
+	inc	IX
+	inc	IY
+	djnz	.LOOPQ2
+	ld	A,(V_TORCHBUFF+24)
+	ld	(IX),A
+
+	ld	IX,V_TORCHBUFF+4	; Mascara Q1
+	ld	A,(IX)
+	and	00000011b
+	ld	(IX),A
+	inc	IX
+	ld	A,(IX)
+	and	00000011b
+	ld	(IX),A
+	inc	IX
+	ld	A,(IX)
+	and	00000111b
+	ld	(IX),A
+	inc	IX
+	ld	A,(IX)
+	and	00000111b
+	ld	(IX),A
+
+	ld	IX,V_TORCHBUFF+12	; Mascara Q2
+	ld	A,(IX)
+	and	11000000b
+	ld	(IX),A
+	inc	IX
+	ld	A,(IX)
+	and	11000000b
+	ld	(IX),A
+	inc	IX
+	ld	A,(IX)
+	and	11100000b
+	ld	(IX),A
+	inc	IX
+	ld	A,(IX)
+	and	11100000b
+	ld	(IX),A
+
+	ld	IX,V_TORCHBUFF+16	; Mascara Q3
+	ld	A,(IX)
+	rrc	A
+	and	00000111b
+	ld	(IX),A
+	inc	IX
+	ld	A,(IX)
+	and	00000111b
+	ld	(IX),A
+	inc	IX
+	ld	A,(IX)
+	and	00000111b
+	ld	(IX),A
+	inc	IX
+	ld	A,(IX)
+	and	00001111b
+	ld	(IX),A
+	inc	IX
+	ld	A,(IX)
+	xor	0FFh
+	and	00001111b
+	ld	(IX),A
+	inc	IX
+	ld	A,(IX)
+	and	00001111b
+	ld	(IX),A
+	inc	IX
+	ld	A,(IX)
+	and	00001111b
+	ld	(IX),A
+	inc	IX
+	ld	A,(IX)
+	and	00001111b
+	ld	(IX),A
+
+	ld	IX,V_TORCHBUFF+24	; Mascara Q4
+	ld	A,(IX)
+	and	11000000b
+	ld	(IX),A
+	inc	IX
+	ld	A,(IX)
+	and	11000000b
+	ld	(IX),A
+	inc	IX
+	ld	A,(IX)
+	and	11000000b
+	ld	(IX),A
+	inc	IX
+	ld	A,(IX)
+	and	11100000b
+	ld	(IX),A
+	inc	IX
+	ld	A,(IX)
+	and	11100000b
+	ld	(IX),A
+	inc	IX
+	ld	A,(IX)
+	xor	0FFh
+	and	11100000b
+	ld	(IX),A
+	inc	IX
+	ld	A,(IX)
+	and	11100000b
+	ld	(IX),A
+	inc	IX
+	ld	A,(IX)
+	and	11100000b
+	ld	(IX),A
+
+	; Fer volcat a VRAM
+	ld	B,4
+	ld	HL,V_TORCHBUFF
+	ld	DE,VRM_PAT+24*8
+	call	IWBVRM
+FIRE_SCNEND:
+	ret

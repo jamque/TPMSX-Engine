@@ -15,22 +15,22 @@
 SPRT16HFLIP:
 	ld	B,16	; Realizamos espejo de 16 primeros bytes
 	push	IY
-@@LOOP:
-	ld	A,[IX]
+.LOOP:
+	ld	A,(IX)
 	call	REVERSE_A
-	ld	[IY+16],A
+	ld	(IY+16),A
 	inc	IX
 	inc	IY
-	djnz	@@LOOP
+	djnz	.LOOP
 	ld	B,16	; Realizamos espejo de 16 segundos bytes
 	pop	IY
-@@LOOP2:
-	ld	A,[IX]
+.LOOP2:
+	ld	A,(IX)
 	call	REVERSE_A
-	ld	[IY],A
+	ld	(IY),A
 	inc	IX
 	inc	IY
-	djnz	@@LOOP2
+	djnz	.LOOP2
 	ld	BC,16		; Al salir deja a IY apuntando al 
 	add	IY,BC		;   siguiente supuesto sprite
 

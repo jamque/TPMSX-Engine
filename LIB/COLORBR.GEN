@@ -1,16 +1,16 @@
-; COLOR BR
-; Cambia el color del Borde de pantalla. Modifica registros VDP
-; Supone VDP en puerto 99h
-; Entrada:
-;	A-> Color a poner (0-15)
-; Salida:
-;	-
-; Modifica:
-;	-
-; Dependencias:
-;	-
+; ////////////////////////////////
+; ///////// COLORBR //////////////
+; ////////////////////////////////
+
+; Canvia el color de les bores
+
+; A = Color a posar
+
+; Cal RAM : res
+; Toca	  : res
+; Retorna : res
+; Usa fun.: res
+
 COLORBR:
-	out	[099h],A
-	ld	A,87h
-	out	[099h],A
+	m_WRITE_DATA_REGISTER 07h	; Register 7: colour register.
 	ret

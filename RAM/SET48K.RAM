@@ -1,5 +1,11 @@
-; ####################################################
-; Variable para salvar el slot donde estan las paginas
-; y formar bien en linea los 48Ks
-; ####################################################
-slotvar:	.byte		; My Rom slot
+;----------------------------------------------------
+; Variable per guardar el slot on son les pagines
+; i formar be en linea els 48ks
+;----------------------------------------------------
+slotvar:	byte		; El meu slot ROM
+
+;----------------------------------------------------
+; Variable per guardar el slot on estan les pagines RAM
+; en cas de voler fer una 64ks
+;----------------------------------------------------
+;slotram:	byte		; El meu slot RAM

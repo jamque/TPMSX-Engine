@@ -1,0 +1,56 @@
+;Random mes real
+
+; //////////////////////////////
+; ///////// GET_RANDOM /////////
+; //////////////////////////////
+
+; Genera un numero aleatori de 0 a 255
+; Original de :
+; http://www.smspower.org/Development/RandomNumberGenerator
+
+; Cal RAM : TIMER
+; Toca	  : HL
+; Param   :
+; Retorna : A = RND % 256
+; Usa fun.:
+
+GET_RANDOM:
+	push	HL
+        ld 	HL,(TIM_RND)
+        ld 	A,H		; get high byte
+        rrca		; rotate right by 2
+        rrca
+        xor 	H		; xor with original
+        rrca		; rotate right by 1
+        xor 	L		; xor with low byte
+        rrca		; rotate right by 4
+        rrca
+        rrca
+        rrca
+        xor	L		; xor again
+        rra		; rotate right by 1 through carry
+        adc 	HL,HL	; add TIM_RND to itself
+        jr	nz,.ADD
+        ld	HL,733Ch    ; if last xor resulted in zero then re-seed random number generator
+.ADD:
+	jr	TIM_RNDSEEDINIT_FROM_GET
+
+; //////////////////////////////
+; ////// TIM_RNDSEEDINIT ///////
+; //////////////////////////////
+
+; Reinicia la llavor del random amb el número R
+; Si es crida en llocs que no sempre triga el mateix a passar,
+; queda força realista.
+
+TIM_RNDSEEDINIT:
+	push	HL
+	ld	HL,(TIM_RND)
+
+TIM_RNDSEEDINIT_FROM_GET:
+	ld	A,R         ; R = refresh register = semi-random number
+        xor	L          ; xor with l which is fairly random
+        ld 	(TIM_RND),HL
+	pop	HL
+
+	ret

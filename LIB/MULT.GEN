@@ -1,0 +1,38 @@
+;Rutines per multiplicar
+
+;mul8b
+;Multiplica dos factors de 8 bits, HL=B*C [Millor si B<C]
+;Modifica A,B,C,HL
+;Arnau Castellví 10-02-2019
+mul8b:	ld HL,0	;HL=PRODUCTE
+		ld A,B	;A =FACTOR 1
+		ld B,0	;BC=FACTOR 2
+.LOOP:bit 0,A
+		jr z,.SALT
+		add HL,BC
+.SALT:	srl A	; A>>1
+		ret z
+		sla C	; BC<<1
+		rl B
+		jr .LOOP
+
+;mul8bf [mult fast]
+;Multiplica dos factors de 8 bits, HL=B*C [Millor si B<C]
+;Comprova la mida dels factors per iterar el menor.
+;Modifica A,B,C,HL
+;Arnau Castellví 10-02-2019
+mul8bf:	ld HL,0	;HL=PRODUCTE
+		ld A,B	;A =Factor menor
+		cp C
+		jp p,.INICI
+		ld A,C
+		ld C,B
+.INICI:ld B,0	;BC =Factor major
+.LOOP:	bit 0,A
+		jr z,.SALT
+		add HL,BC
+.SALT:	srl A; A>>1
+		ret z
+		sla C	; BC<<1
+		rl B
+		jr .LOOP

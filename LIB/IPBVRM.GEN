@@ -1,0 +1,58 @@
+; ////////////////////////////////
+; ///////// IPBVRM ///////////////
+; ////////////////////////////////
+
+; Interrupt pub buffer videoram
+; VOLCA buffer de 768 bytes A VRAM screen2
+; 29/12/04 Arnau Castellvi / Zona Neutra
+
+; HL = Offset del buffer
+
+; Cal RAM : res
+; Toca	  : B,C,D,E
+; Retorna : res
+; Usa fun.: res
+
+IPBVRM:
+	ld 	DE,VRM_MAP
+	ld 	B,96
+	ld 	A,E
+	out 	(99h),A
+	ld 	A,D
+	or 	40h
+	out 	(99h),A
+	ld 	C,98h
+
+IPBVRM0:
+	ld 	D,B
+	outi
+	nop
+	nop
+	nop
+	outi
+	nop
+	nop
+	nop
+	outi
+	nop
+	nop
+	nop
+	outi
+	nop
+	nop
+	nop
+	outi
+	nop
+	nop
+	nop
+	outi
+	nop
+	nop
+	nop
+	outi
+	nop
+	nop
+	ld 	B,D
+	outi
+	jr 	nz,IPBVRM0
+	ret

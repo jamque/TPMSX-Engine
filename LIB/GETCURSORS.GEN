@@ -1,45 +1,47 @@
-; GETCURSORS
-; Coge los valores de las pulsaciones de las teclas de cursor
-; Entrada:
-;	HL -> Puntero a varible de salida 
-; Salida:
-;	En la posición [HL] los bits 5-0 (B/A/R/L/D/U) a 1 si se han pulsado
-; Modifica:
-;	IX
-; Dependencias:
+; ////////////////////////////////////
+; ///////// GETCURSORS ///////////////
+; ////////////////////////////////////
+
+; Agafa els valors del cursors
+
+; HL =	Posicio variable CURSORS
+
+; Cal RAM : KEYBOARD (CONTROL.RAM)
+; Toca	  : A,IX
+; Retorna : Posicio (HL) bits 5-0 [B/A/R/L/D/U] per 1
+; Usa fun.: res
 ;	RAM: KEYBOARD (CONTROL.RAM)
 GETCURSORS:
 	ld 	IX,KEYBOARD
-	ld	A,00000000b
+	xor	A
 
-	bit 	0,[IX+1]
-	jr 	nz,@@2	
-	or	00010000b	;ESPACIO DISPARO A(32)
-@@2:
-	bit 	4,[IX+1]
-	jr 	nz,@@3
-	or	00000100b	;CURSOR IZQUIERDA (1)
-@@3:
-	bit 	5,[IX+1]
-	jr 	nz,@@4
-	or	00000001b	;CURSOR ARRIBA (2)
-@@4:
-	bit 	6,[IX+1]
-	jr 	nz,@@5
-	or	00000010b	;CURSOR ABAJO (3)
-@@5:
-	bit 	7,[IX+1]
-	jr 	nz,@@6
-	or	00001000b	;CURSOR DERECHA (4)
-@@6:
-	bit 	2,[IX+3]
-	jr 	nz,@@7
-	or	00100000b	;GRAPH [Alt] DISPARO B (6)
-@@7:
-	bit 	2,[IX+5]
-	jr 	nz,@@END
-	or	00100000b	; M DISPARO B(77)
-
-@@END:
-	ld 	[HL],A
+	bit 	0,(IX+1)
+	jr 	nz,.NEXT2
+	or	00010000b	;Espai Tret A[32]
+.NEXT2:
+	bit 	4,(IX+1)
+	jr 	nz,.NEXT3
+	or	00000100b	;CURSOR Esquerra [1]
+.NEXT3:
+	bit 	5,(IX+1)
+	jr 	nz,.NEXT4
+	or	00000001b	;CURSOR Amunt [2]
+.NEXT4:
+	bit 	6,(IX+1)
+	jr 	nz,.NEXT5
+	or	00000010b	;CURSOR Aball [3]
+.NEXT5:
+	bit 	7,(IX+1)
+	jr 	nz,.NEXT6
+	or	00001000b	;CURSOR Dreta [4]
+.NEXT6:
+	bit 	2,(IX+3)
+	jr 	nz,.NEXT7
+	or	00100000b	;GRAPH [Alt] Tret B [6]
+.NEXT7:
+	bit 	2,(IX+5)
+	jr 	nz,.END
+	or	00100000b	; M Tret B [77]
+.END:
+	ld 	(HL),A
 	ret

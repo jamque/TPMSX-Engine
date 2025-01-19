@@ -1,40 +1,40 @@
-; ################################################
+;------------------------------------------------
 ; Variables de Control (Joystick, Teclado y ratón)
-; ################################################
-JOY1:		.byte		; Valores del Joystick 1
+;------------------------------------------------
+JOY1:		byte		; Valores del Joystick 1
 				; bits 5-0 (B/A/R/L/D/U) a 1
-CURSORS:	.byte		; Valores del CURSORS / SPACE / M o GRAPH
+CURSORS:	byte		; Valores del CURSORS / SPACE / M o GRAPH
 				; bits 5-0 (B/A/R/L/D/U) a 1
-MOUSERELX:	.byte		; Incremento X de Mouse
-MOUSERELY:	.byte		; Incremento Y de Mouse
-MOUSEX:		.byte		; Posición X del Mouse
-MOUSEY:		.byte		; Posición Y del Mouse
-MOUSESPR:	.byte		; Número de Patrón Sprite para Mouse
-MOUSEON:	.byte		; Si 1 tenim Ratón en el port 1.
+MOUSERELX:	byte		; Incremento X de Mouse
+MOUSERELY:	byte		; Incremento Y de Mouse
+MOUSEX:		byte		; Posición X del Mouse
+MOUSEY:		byte		; Posición Y del Mouse
+MOUSESPR:	byte		; Número de Patrón Sprite para Mouse
+MOUSEON:	byte		; Si 1 tenim Ratón en el port 1.
 
-PLY1CONTROL:	.byte		; Valores del Joystick 1 + CURSORS sumados con OR
+PLY1CONTROL:	byte		; Valores del Joystick 1 + CURSORS sumados con OR
 				; bits 5-0 (B/A/R/L/D/U) a 1
 
-; #####################
-; De fichero: TECLA.GEN
-; #####################
-KEYBOARD:	.ds	10	; Buffer del polling de TECLA.GEN
-KEY_f:		.byte		; Variable de TECLA.GEN
+;---------------------
+; De fitxer: TECLA.GEN
+;---------------------
+KEYBOARD:	ds	10	; Buffer del polling de TECLA.GEN
+KEY_f:		byte		; Variable de TECLA.GEN
 
-; ###################
-; De fichero: CIN.GEN
-; ###################
-TEXT_X:		.byte		; Posición X del input de teclado
-TEXT_Y:		.byte		; Posición Y del input de teclado
-TEXT_MAX:	.byte		; Longitud máxima de texto entrado
-TEXT_CHAR_OFF:	.byte		; Offset de la posición de tile de la A
-TEXT_IN:	.ds	32	; Variable para guardar lo introducido por teclado
-TEXT_COUNT:	.byte		; Cuenta cuantas letras se han introducido
-TEXT_ALLIN:	.byte		; Se pone a 1 si se ha pulsado ENTER. El texto está completo
+;-------------------
+; De fitxer: CIN.GEN
+;-------------------
+TEXT_X:		byte		; Posición X del input de teclado
+TEXT_Y:		byte		; Posición Y del input de teclado
+TEXT_MAX:	byte		; Longitud máxima de texto entrado
+TEXT_CHAR_OFF:	byte		; Offset de la posición de tile de la A
+TEXT_IN:	ds	32	; Variable para guardar lo introducido por teclado
+TEXT_COUNT:	byte		; Cuenta cuantas letras se han introducido
+TEXT_ALLIN:	byte		; Se pone a 1 si se ha pulsado ENTER. El texto está completo
 
-; ###################
-; De fichero: MINIPSG.GEN
-; ###################
-PLAYRNDVALUE:	.byte		; Valor random a playear.
-PLAYRNDTIMES:	.byte		; Veces del RND player.
-PLAYAMBION:	.byte		; Semaforo que indica que hay un Ambiente sonando
+;-------------------
+; De fitxer: MINIPSG.GEN
+;-------------------
+PLAYRNDVALUE:	byte		; Valor random a playear.
+PLAYRNDTIMES:	byte		; Veces del RND player.
+PLAYAMBION:	byte		; Semaforo que indica que hay un Ambiente sonando

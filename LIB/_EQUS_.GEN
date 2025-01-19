@@ -1,9 +1,40 @@
+IF USE_SCREEN ==2
 ; Posicions de memoria de Screen 2
-
-VRM_PAT equ 	0000h	; Tile Patterns
-VRM_COL equ 	2000h	; Tile Colors
+VRM_PAT	equ 	0000h	; Tile Patterns
+VRM_COL	equ 	2000h	; Tile Colors
 VRM_MAP	equ	1800h	; Tile Map (Screen)
 VRM_SPA	equ	1B00h	; Sprite Attributes (Y,X,PatNum,Color)
 VRM_SPP	equ	3800h	; Sprite Patterns
+ENDIF
 
+IF USE_SCREEN == 4
+; Posicions de memoria de Screen 4
+; Tiles igual que SCREEN 2
+VRM_PAT	equ	0000h	; Tile Patterns
+VRM_COL	equ 	2000h	; Tile Colors
+VRM_MAP	equ	1800h	; Tile Map (Screen)
+VRM_SPC	equ	1C00h	; Sprite Colors
+VRM_SPA	equ	1E00h	; Sprite Attributes (Y,X,PatNum,Color)
+VRM_PAL	equ	1E80h	; Palette Colors 7680h-769Fh
+VRM_SPP	equ	3800h	; Sprite Patterns
+ENDIF
+
+IF USE_SCREEN == 5
+; Posicions de memoria de Screen 5
+VRM_BIT	equ	0000h	; Bitmap (Screen) 0000h-69FFh
+			; Del 7000h a 73FFh ???? Son pixels del Bitmap
+			;   no visibles si el Reg27d = 0
+VRM_SPC	equ	7400h	; Sprite Colors
+VRM_SPA	equ	7600h	; Sprite Attributes (Y,X,PatNum,Color)
+VRM_PAL	equ	7680h	; Palette Colors 7680h-769Fh
+VRM_SPP	equ	7800h	; Sprite Patterns
+ENDIF
+
+; HighSpeed VDP CMD MSX2: (Que conozco)
+CMDSTOP		equ	000h	; Stop
+CMDCOPYV	equ	0E0h	; Highspeed Copy Vertically, VRAM -> VRAM
+CMDCOPY 	equ	0D0h	; Copy Rectangle VRAM->VRAM
+CMDCOPY0	equ	098h	; Copy Rectangle VRAM->VRAM Mask color 0
+CMDRECT		equ	080h	; Fill Rectangle [LineBF]
+CMDLINE		equ	070h	; Line normal with color
 

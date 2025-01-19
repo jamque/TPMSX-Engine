@@ -5,11 +5,11 @@
 ; converteix numero 'HL' en ascii al buffer 'DE'
 
 ; HL = Numero a convertir
-; DE = Posicion del Buffer del Numero (5 bytes)
+; DE = Posicion del Buffer del Numero [5 bytes]
 
 ; Cal RAM : res
 ; Toca	  : BC
-; Retorna : a DE (en ASCII)
+; Retorna : a DE [en ASCII]
 ; Usa fun.: res
 
 N162ASC:
@@ -30,6 +30,6 @@ N162ASC_2:
 	add 	HL,BC
 	jr 	c,N162ASC_2
 	sbc 	HL,BC
-	ld 	[DE],A
+	ld 	(DE),A
 	inc 	DE
 	ret

@@ -1,48 +1,49 @@
-; ######################
+;---------------------
 ; Variables de la Rutina PT3 Player
-; ######################
-PT3_ON:			.byte 		;Para el Timer 0 o 1 para que se actualize la musica
-PT3_PATTERN_POS:	.byte		;Posicion playeandose de Pattern
-PT3_SECOND:		.byte		;Segundos del pattern actual
-PT3_FRAME:		.byte		;Numero de frame del segundo actual
+;---------------------
+PT3_ON:			byte 		; Para el Timer 0 o 1 perque s'actualitzi la musica
+PT3_PATTERN_POS:	byte		; Posicio Pattern que esta sonant
+PT3_NUMSONG:		byte		; Contador de numero de canço
+PT3_SECOND:		byte		; Segons del pattern actual
+PT3_FRAME:		byte		; Numero de frame del segon actual
 
-PT3_SETUP:		.byte		;set bit0 to 1, if you want to play without looping
-					;bit7 is set each time, when loop point is passed
-PT3_MODADDR:		.word
-PT3_CrPsPtr:		.word
-PT3_SAMPTRS:		.word
-PT3_OrnPtrs:		.word
-PT3_PDSP:		.word
-PT3_CSP:		.word
-PT3_PSP:		.word
-PT3_PrNote:		.byte
-PT3_PrSlide:		.word
-PT3_AdInPtA:		.word
-PT3_AdInPtB:		.word
-PT3_AdInPtC:		.word
-PT3_LPosPtr:		.word
-PT3_PatsPtr:		.word
-PT3_Delay:		.byte
-PT3_AddToEn:		.byte
-PT3_Env_Del:		.byte
-PT3_ESldAdd:		.word
+PT3_SETUP:		byte		; bit0 a 1, si vols que soni sense loop
+					; bit7 es posa a 1 cada cop que pasa per el punt de loop
+PT3_MODADDR:		word
+PT3_CrPsPtr:		word
+PT3_SAMPTRS:		word
+PT3_OrnPtrs:		word
+PT3_PDSP:		word
+PT3_CSP:		word
+PT3_PSP:		word
+PT3_PrNote:		byte
+PT3_PrSlide:		word
+PT3_AdInPtA:		word
+PT3_AdInPtB:		word
+PT3_AdInPtC:		word
+PT3_LPosPtr:		word
+PT3_PatsPtr:		word
+PT3_Delay:		byte
+PT3_AddToEn:		byte
+PT3_Env_Del:		byte
+PT3_ESldAdd:		word
 
 VARS:
-ChanA:			.ds	29	;CHNPRM_Size
-ChanB:			.ds	29	;CHNPRM_Size
-ChanC:			.ds	29	;CHNPRM_Size
+ChanA:			ds	29	;CHNPRM_Size
+ChanB:			ds	29	;CHNPRM_Size
+ChanC:			ds	29	;CHNPRM_Size
 
-; ######################
+;---------------------
 ; GlobalVars
-; ######################
-DelyCnt:		.byte
-CurESld:		.word
-CurEDel:		.byte
+;---------------------
+DelyCnt:		byte
+CurESld:		word
+CurEDel:		byte
 Ns_Base_AddToNs:
-Ns_Base:		.byte
-AddToNs:		.byte
+Ns_Base:		byte
+AddToNs:		byte
 
 AYREGS:
-VT_:			.ds	14
-EnvBase:		.word
-VAR0END:		.ds	240
+VT_:			ds	14
+EnvBase:		word
+VAR0END:		ds	240

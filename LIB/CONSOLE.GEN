@@ -1,0 +1,65 @@
+; ////////////////////////////////
+; ////// CONSOLE PRINT ///////////
+; ////////////////////////////////
+
+; Function to print Text in Screen 0
+; Use BIOS - CHPUT
+
+; CClearScreen -> Clear Screen and Home Cursor
+; CLocate -> Move Cursor to X,Y Coordinates
+; CPutText -> Write Text (ends with 0)
+; CPutVar -> Write Variable data (00-99)
+
+CClearScreen:
+	ld	A,27
+	call	CHPUT
+	ld	A,'E'	; Clear Screen
+	call	CHPUT
+	ld	A,27
+	call	CHPUT
+	ld	A,'E'	; Cursor Home
+	call	CHPUT
+	ret
+CEndL:
+	ld	A,10
+	call	CHPUT
+	ld	A,13
+	call	CHPUT
+	ret
+
+; BC = Coordinates Y,X -> (B,C)
+CLocate:
+	push	BC
+	ld	A,27
+	call	CHPUT
+	ld	A,'Y'	; Locate
+	call	CHPUT
+	pop	BC
+	push	BC
+	ld	A,B
+	add	A,32
+	call	CHPUT
+	pop	BC
+	ld	A,C
+	add	A,32
+	call	CHPUT
+	ret
+
+; HL = Pointer to Text (end with 0)
+CPutText:
+.loop:
+	ld	A,(HL)
+	or	A
+	ret	z
+	call	CHPUT
+	inc	HL
+	jr	.loop
+
+; A = Data to show
+CPutVar:
+	call	N2ASCII
+	ld	A,H
+	call	CHPUT
+	ld	A,L
+	call	CHPUT
+	ret

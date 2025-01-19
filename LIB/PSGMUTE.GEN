@@ -10,28 +10,28 @@
 ; Usa fun.: res
 	
 PSGMUTE:
-	ld	B,00111111b	; PSG -> Tot el Mixer OFF per 1 (R7)
+	ld	B,00111111b	; PSG -> Tot el Mixer OFF per 1 [R7]
 	ld	A,7
-	out	[0A0h],A
-	in	A,[0A2h]	; Lectura del R7
+	out	(0A0h),A
+	in	A,(0A2h)	; Lectura del R7
 	and	11000000b	; Mascara para coger dos bits de joys
-	or	B		; Añado Byte de B
+	or	B		; mascara OR de B
 	ld	B,A
 	ld	A,7		; Actualiza R7 del PSG
-	out	[0A0h],A
+	out	(0A0h),A
 	ld	A,B
-	out	[0A1h],A
+	out	(0A1h),A
 	ld	A,8
-	out	[0A0h],A	; PSG -> Canal A Volumen 0 [R8]
+	out	(0A0h),A	; PSG -> Canal A Volumen 0 (R8)
 	xor	A
-	out	[0A1h],A
+	out	(0A1h),A
 	ld	A,9
-	out	[0A0h],A	; PSG -> Canal B Volumen 0 [R9]
+	out	(0A0h),A	; PSG -> Canal B Volumen 0 (R9)
 	xor	A
-	out	[0A1h],A
+	out	(0A1h),A
 	ld	A,10
-	out	[0A0h],A	; PSG -> Canal C Volumen 0 [R10]
+	out	(0A0h),A	; PSG -> Canal C Volumen 0 (R10)
 	xor	A
-	out	[0A1h],A
+	out	(0A1h),A
 	
 	ret

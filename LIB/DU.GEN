@@ -1,0 +1,665 @@
+; Generador de laberints [Mar-2009]
+; Version aMSX de Robsy
+;
+; Donada una SEED a la posicio DUN_SE [4bytes]
+; genera una mazzmorra a DUN_DU [matriu de 8x8 bytes]
+; amb el format seguent de bits:
+;       0 - Obert al NORD
+;       1 - Obert al EST
+;       2 - Obert al SUD
+;       3 - Obert al OEST
+;       4 - Valor 1 si casella es START
+;       5 - Valor 1 si casella es SORTIDA
+;       6 - Valor 1 si casella es MONSTRE/CLAU
+;       7 - Valor 0 sempre
+;----------------------------------
+
+;------------------------------------
+; Rutina CHECK_DU
+; Check si al DUN_PS i el laberint generat DUN_DU es un laberint valid.
+; IN 	: 	DUN_PS [6bytes SEED descompuesta]
+;		DUN_DU Laberitnt creat.
+; OUT	:	A -> 0 si el laberint es correcte
+;		  -> 1 si el laberint no es valid.
+;------------------------------------
+CHECK_DU:
+	; START [PS3] i END [PS4] no poden ser iguals
+	ld	IX,DUN_PS
+	ld	A,(IX+3)
+	cp	(IX+4)
+	jr	z,.RET_1
+	; START [PS3] i KEY [PS5] no poden ser iguals
+	cp	(IX+5)
+	jr	z,.RET_1
+	; END [PS4] i KEY [PS5] no poden ser iguals
+	ld	A,(IX+4)
+	cp	(IX+5)
+	jr	z,.RET_1
+	; Si END (IX+4) esta en una casella oberta
+	ld	HL,DUN_DU
+	and	0111000b
+	srl	A	; Invertir els valors X<->Y
+	srl	A
+	srl	A
+	ld	B,A
+	ld	A,(IX+4)
+	and	00000111b
+	sla	A
+	sla	A
+	sla	A
+	or	B
+	ld	E,A
+	ld	D,0
+	add	HL,DE	; Faig increment sobre DUN_DU
+	ld	A,(HL)
+	and	00001111b	; Miro si está oberta
+	cp	0		; No te cap mur obert
+	jr	z,.RET_1
+	; Si KEY (IX+5) está en una casella oberta
+	ld	A,(IX+5)
+	ld	HL,DUN_DU
+	and	0111000b
+	srl	A	; Invertir els valors X<->Y
+	srl	A
+	srl	A
+	ld	B,A
+	ld	A,(IX+5)
+	and	00000111b
+	sla	A
+	sla	A
+	sla	A
+	or	B
+	ld	E,A
+	ld	D,0
+	add	HL,DE	; Faig increment sobre DUN_DU
+	ld	A,(HL)
+	and	00001111b	; Miro si esta oberta
+	cp	0		; No te cap mur obert
+	jr	z,.RET_1
+
+.RET_0:
+	xor	A
+	ret
+.RET_1:
+	ld	A,1
+	ret
+
+;------------------------------------
+; Rutina DUNG_PS2SE
+; Donada una DUN_PS valors descomposats
+; Genera DUN_SE a la posicio DUN_SE [4bytes].
+; IN 	: 	DUN_PS [6bytes SEED descompuesta]
+; OUT 	:	DUN_SE [4bytes que de SEED]
+;------------------------------------
+; SE[0]=[PS[0]AND&B00111111]*4+[PS[1]AND&B00000110]/2
+; SE[1]=[PS[1]AND&B001]*128+[PS[2]*16]+[PS[3]AND&B00111100]/4
+; SE[2]=[PS[3]AND&B00000011]*64+PS[4]
+; SE[3]=PS[5]*4
+DUNG_PS2SE:
+	ld	IY,DUN_PS
+	ld	IX,DUN_SE
+	; SE[0]=[PS[0]AND&B00111111]*4+[PS[1]AND&B00000110]/2
+	ld	A,(IY)
+	and	00111111b
+	sla	A		;Multiplicar
+	sla	A
+	ld	B,A
+	ld	A,(IY+1)
+	and	00000110b
+	srl	A		;Dividir
+	or	B
+	ld	(IX),A
+
+	; SE[1]=[PS[1]AND&B001]*128+[PS[2]*16]+[PS[3]AND&B00111100]/4
+	ld	A,(IY+1)
+	and	001b
+	rrc	A	; Pasa el bit0 a bit7 = *128
+	ld	B,A
+	ld	A,(IY+2)
+	sla	A		;Multiplicar
+	sla	A
+	sla	A		;Multiplicar
+	sla	A
+	or	B
+	ld	B,A
+	ld	A,(IY+3)
+	and	00111100b
+	srl	A		;Dividir
+	srl	A		;Dividir
+	or	B
+	ld	(IX+1),A
+
+	; SE[2]=[PS[3]AND&B00000011]*64+PS[4]
+	ld	A,(IY+3)
+	and	00000011b
+	sla	A		;Multiplicar
+	sla	A
+	sla	A		;Multiplicar
+	sla	A
+	sla	A		;Multiplicar
+	sla	A
+	or	(IY+4)		; Directo, existe la uso para hacer la suma
+	ld	(IX+2),A
+
+	; SE[3]=PS[5]*4
+	ld	A,(IY+5)
+	sla	A		;Multiplicar
+	sla	A
+	ld	(IX+3),A
+
+	ret
+
+;------------------------------------
+; Rutina DUNG_SE2PS
+; Donada una SEED a la posicio DUN_SE [4bytes]
+; Genera DUN_PS valors descomposats.
+; IN 	:	DUN_SE [4bytes que de SEED]
+; OUT 	: 	DUN_PS [6bytes SEED descompuesta]
+;------------------------------------
+; SE[0]=[PS[0]AND&B00111111]*4+[PS[1]AND&B00000110]/2
+; SE[1]=[PS[1]AND&B001]*128+[PS[2]*16]+[PS[3]AND&B00111100]/4
+; SE[2]=[PS[3]AND&B00000011]*64+PS[4]
+; SE[3]=PS[5]*4
+;
+; PS[0]=[SE[0]AND&B11111100]/4
+; PS[1]=[SE[0]AND&B00000011]*2+[SE[1]AND&B10000000]/128
+; PS[2]=[SE[1]AND&B01110000]/16]
+; PS[3]=[SE[1]AND&B00001111]*4+[SE[2]AND&B11000000]/64
+; PS[4]=[SE[2]AND&B00111111]
+; PS[5]=[SE[3]AND&B11111100]/4
+DUNG_SE2PS:
+	ld	IY,DUN_PS
+	ld	IX,DUN_SE
+
+	; PS[0]=[SE[0]AND&B11111100]/4
+	ld	A,(IX)
+	and	11111100b
+	srl	A
+	srl	A
+	ld	(IY),A
+
+	; PS[1]=[SE[0]AND&B00000011]*2+[SE[1]AND&B10000000]/128
+	ld	A,(IX)
+	and	00000011b
+	sla	A
+	ld	B,A
+	ld	A,(IX+1)
+	and	10000000b
+	rlca	; Pasa el 1 de bit7 a la posicion bit0 = /128
+	or	B
+	ld	(IY+1),A
+
+	; PS[2]=[SE[1]AND&B01110000]/16]
+	ld	A,(IX+1)
+	and	01110000b
+	srl	A
+	srl	A
+	srl	A
+	srl	A
+	ld	(IY+2),A
+
+	; PS[3]=[SE[1]AND&B00001111]*4+[SE[2]AND&B11000000]/64
+	ld	A,(IX+1)
+	and	00001111b
+	sla	A
+	sla	A
+	ld	B,A
+	ld	A,(IX+2)
+	and	11000000b
+	srl	A
+	srl	A
+	srl	A
+	srl	A
+	srl	A
+	srl	A
+	or	B
+	ld	(IY+3),A
+	; PS[4]=[SE[2]AND&B00111111]
+	ld	A,(IX+2)
+	and	00111111b
+	ld	(IY+4),A
+	; PS[5]=[SE[3]AND&B11111100]/4
+	ld	A,(IX+3)
+	and	11111100b
+	srl	A
+	srl	A
+	ld	(IY+5),A
+
+	ret
+
+;------------------------------------
+; Rutina DUNGDO
+; Do a Dungeon
+; IN 	:	DUN_SE [4bytes que de SEED]
+; OUT 	: 	DUN_DU [Matriu de 8x8 bytes]
+;		DUN_PS [Variables de coordenades i informacio del Dungeon]
+; MODI 	: 	tot
+; VARIABLES RAM : Total [146 bytes]
+;	DUN_DU [64]	DUN_ST [64]	DUN_PS [6]
+;	DUN_SE [4]
+;	DUN_DX [1]	DUN_DY  [1]	DUN_DI [1]
+;	DUN_VC [1]	DUN_IM0 [1]	DUN_IM [1]
+;	DUN_IS [1]	DUN_NE  [1]
+; ETIQUETAS DADES ROM :
+;	DUN_ME [64]	Matriu 8x8
+;	DUN_ER	[6]	Habitacion Obertes
+;------------------------------------
+
+DUNGDO:
+	; Inicialitza variables DX,DY,DI,VC,IM,IS,NE
+	ld	IY,DUN_PS
+	ld	A,(IY+3)
+	ld	B,A
+	and	00111000b
+	srl	A
+	srl	A
+	srl	A
+	ld	(DUN_DX),A
+	ld	A,B
+	and	00000111b
+	ld	(DUN_DY),A
+	sla	A
+	sla	A
+	sla	A
+	ld	B,A
+	ld	A,(DUN_DX)
+	or	B
+	ld	(DUN_DI),A
+	xor	A
+	ld	(DUN_VC),A
+	ld	(DUN_IS),A
+	ld	(DUN_NE),A
+	ld	A,(IY+1)
+	sla	A
+	sla	A
+	sla	A
+	;//////////////////// ERROR DE GUARDAR DIFERENT
+	ld	(DUN_IM0),A
+	dec	A
+	;//////////////////// PERO HO DEIXO AIXI PEL GENERADOR BASIC
+	ld	(DUN_IM),A
+
+
+	; Posa Dungeon a 0 [DUN_DU] i [DUN_ST]
+	ld	HL,DUN_DU
+	ld	IX,DUN_ST
+	ld	B,64
+DU0:	ld	(HL),0
+	ld	(IX),0
+	inc	HL
+	inc	IX
+	DJNZ	DU0
+
+	; Crea Dungeon
+
+	; Comenca cicle de creacio
+DU1:	ld	A,(DUN_NE)
+	cp	00001111b
+	jr	nz,DU3		 ; Hay salida?
+DU2:	ld	A,(DUN_IS)	; Pasos Atras
+	dec	A
+	ld	(DUN_IS),A	; IS=IS-1
+	ld	HL,DUN_ST
+	ld	C,A
+	ld	B,0
+	add	HL,BC		; ##Intentar evitar con posicion fija del DUN_ST
+	ld	A,(HL)
+	ld	(DUN_DI),A	; DI=ST[IS]
+	ld	B,A
+	srl	A
+	srl	A
+	srl	A
+	ld	(DUN_DY),A	; DY=DI/8
+	ld	A,B
+	and	00000111b
+	ld	(DUN_DX),A	; DX=DI-DY*8
+	xor	A
+	ld	(DUN_NE),A	; NE=0
+DU3:	ld	A,(DUN_IM)	; Sigue a siguiente casilla, sigue semilla azar
+	inc	A
+	ld	(DUN_IM),A	; IM=IM+1
+	cp	64		; semilla azar es maxim?
+	jr	nz,DU4
+	ld	A,(DUN_IM0)	; cas afirmatiu reinicia IM=IM0
+	ld	(DUN_IM),A
+DU4:	ld	HL,DUN_ME	; Switch de direccions segons azar ME
+	ld	A,(DUN_IM)
+	ld	C,A
+	ld	B,0
+	add	HL,BC		; ##Intentar evitar con posicion fija del DUN_ME
+	ld	A,(HL)
+	cp	1
+	jr	z,DU100 	; Direccion NORTE
+	cp	2
+	jr	z,DU200 	; Direccion ESTE
+	cp	4
+	jr	z,DU400b	; Direccion SUR
+	jp	DU800		; Direccion OESTE
+DU400b:	jp	DU400
+
+DU100:	ld	A,(DUN_DY)	; Paso al Norte, si no estoy en el borde
+	cp	0
+	jr	nz,DU102
+DU101:	ld	A,(DUN_NE)	; No hay casilla Norte, senyalo amb NE or 1
+	or	00000001b
+	ld	(DUN_NE),A
+	jp	DU1
+DU102:	ld	HL,DUN_DU	; Paso al Norte, si hay casilla sin pisar
+	ld	A,(DUN_DI)
+	sub	8
+	ld	C,A
+	ld	B,0
+	add	HL,BC		; ##Intentar evitar con posicion fija del DUN_DU
+	ld	A,(HL)
+	cp	0
+	jr	z,DU103
+	jp	DU101
+DU103:	ld	HL,DUN_DU	; Marco abertura Norte -> or 1
+	ld	A,(DUN_DI)
+	ld	C,A
+	ld	B,0
+	add	HL,BC		; ##Intentar evitar con posicion fija del DUN_DU
+	ld	A,(HL)
+	or	00000001b
+	ld	(HL),A
+	push	HL
+	pop	IX
+	ld	A,(IX-8)	; Marco abertura Sur a la casella sup. -> or 4
+	or	00000100b
+	ld	(IX-8),A
+	ld	HL,DUN_ST
+	ld	A,(DUN_IS)
+	ld	C,A
+	ld	B,0
+	add	HL,BC		; ##Intentar evitar con posicion fija del DUN_ST
+	ld	A,(DUN_DI)	; Guardo al ST la posicio caminada DI
+	ld	(HL),A
+	sub	8		; Actualitzo DI cap a Norte [-8]
+	ld	(DUN_DI),A
+	ld	A,(DUN_DY)	; Actualizo DY [-1]
+	dec	A
+	ld	(DUN_DY),A
+	xor	A
+	ld	(DUN_NE),A	; Poso NE a cero
+	jp	DU900
+
+DU200:	ld	A,(DUN_DX)	; Paso al Est, si no estoy en el borde
+	cp	7
+	jr	nz,DU202
+DU201:	ld	A,(DUN_NE)	; No hay casilla Est, senyalo amb NE or 2
+	or	00000010b
+	ld	(DUN_NE),A
+	jp	DU1
+DU202:	ld	HL,DUN_DU	; Paso al Est, si hay casilla sin pisar
+	ld	A,(DUN_DI)
+	inc	A
+	ld	C,A
+	ld	B,0
+	add	HL,BC		; ##Intentar evitar con posicion fija del DUN_DU
+	ld	A,(HL)
+	cp	0
+	jr	z,DU203
+	jp	DU201
+DU203:	ld	HL,DUN_DU	; Marco abertura Este -> or 2
+	ld	A,(DUN_DI)
+	ld	C,A
+	ld	B,0
+	add	HL,BC		; ##Intentar evitar con posicion fija del DUN_DU
+	ld	A,(HL)
+	or	00000010b
+	ld	(HL),A
+	push	HL
+	pop	IX
+	ld	A,(IX+1)	; Marco abertura Oest a la casella Izq. -> or 8
+	or	00001000b
+	ld	(IX+1),A
+	ld	HL,DUN_ST
+	ld	A,(DUN_IS)
+	ld	C,A
+	ld	B,0
+	add	HL,BC		; ##Intentar evitar con posicion fija del DUN_ST
+	ld	A,(DUN_DI)	; Guardo al ST la posicio caminada DI
+	ld	(HL),A
+	inc	A		; Actualitzo DI cap a Oest [+1]
+	ld	(DUN_DI),A
+	ld	A,(DUN_DX)	; Actualizo DX[+1]
+	inc	A
+	ld	(DUN_DX),A
+	xor	A
+	ld	(DUN_NE),A	; Poso NE a cero
+	jp	DU900
+
+DU400:	ld	A,(DUN_DY)	; Paso al Sur, si no estoy en el borde
+	cp	7
+	jr	nz,DU402
+DU401:	ld	A,(DUN_NE)	; No hay casilla Sur, senyalo amb NE or 4
+	or	00000100b
+	ld	(DUN_NE),A
+	jp	DU1
+DU402:	ld	HL,DUN_DU	; Paso al Sur, si hay casilla sin pisar
+	ld	A,(DUN_DI)
+	add	A,8
+	ld	C,A
+	ld	B,0
+	add	HL,BC		; ##Intentar evitar con posicion fija del DUN_DU
+	ld	A,(HL)
+	cp	0
+	jr	z,DU403
+	jp	DU401
+DU403:	ld	HL,DUN_DU	; Marco abertura Sur -> or 4
+	ld	A,(DUN_DI)
+	ld	C,A
+	ld	B,0
+	add	HL,BC		; ##Intentar evitar con posicion fija del DUN_DU
+	ld	A,(HL)
+	or	00000100b
+	ld	(HL),A
+	push	HL
+	pop	IX
+	ld	A,(IX+8)	; Marco abertura Norte a la casella sup. -> or 1
+	or	00000001b
+	ld	(IX+8),A
+	ld	HL,DUN_ST
+	ld	A,(DUN_IS)
+	ld	C,A
+	ld	B,0
+	add	HL,BC		; ##Intentar evitar con posicion fija del DUN_ST
+	ld	A,(DUN_DI)	; Guardo al ST la posicio caminada DI
+	ld	(HL),A
+	add	A,8		; Actualitzo DI cap al Sur [+8]
+	ld	(DUN_DI),A
+	ld	A,(DUN_DY)	; Actualizo DY [+1]
+	inc	A
+	ld	(DUN_DY),A
+	xor	A
+	ld	(DUN_NE),A	; Poso NE a cero
+	jp	DU900
+
+DU800:	ld	A,(DUN_DX)	; Paso al Oest, si no estoy en el borde
+	cp	0
+	jr	nz,DU802
+DU801:	ld	A,(DUN_NE)	; No hay casilla Oest, senyalo amb NE or 8
+	or	00001000b
+	ld	(DUN_NE),A
+	jp	DU1
+DU802:	ld	HL,DUN_DU	; Paso al Oest, si hay casilla sin pisar
+	ld	A,(DUN_DI)
+	dec	A
+	ld	C,A
+	ld	B,0
+	add	HL,BC		; ##Intentar evitar con posicion fija del DUN_DU
+	ld	A,(HL)
+	cp	0
+	jr	z,DU803
+	jp	DU801
+DU803:	ld	HL,DUN_DU	; Marco abertura Oeste -> or 8
+	ld	A,(DUN_DI)
+	ld	C,A
+	ld	B,0
+	add	HL,BC		; ##Intentar evitar con posicion fija del DUN_DU
+	ld	A,(HL)
+	or	00001000b
+	ld	(HL),A
+	push	HL
+	pop	IX
+	ld	A,(IX-1)	; Marco abertura Est a la casella Drt. -> or 2
+	or	00000010b
+	ld	(IX-1),A
+	ld	HL,DUN_ST
+	ld	A,(DUN_IS)
+	ld	C,A
+	ld	B,0
+	add	HL,BC		; ##Intentar evitar con posicion fija del DUN_ST
+	ld	A,(DUN_DI)	; Guardo al ST la posicio caminada DI
+	ld	(HL),A
+	dec	A		; Actualitzo DI cap a Oest [-1]
+	ld	(DUN_DI),A
+	ld	A,(DUN_DX)	; Actualizo DX[-1]
+	dec	A
+	ld	(DUN_DX),A
+	xor	A
+	ld	(DUN_NE),A	; Poso NE a cero
+	jp	DU900
+
+DU900:	ld	A,(DUN_IS)
+	inc	A
+	ld	(DUN_IS),A
+	ld	A,(DUN_VC)
+	inc	A
+	ld	(DUN_VC),A
+	ld	A,(DUN_PS)
+	ld	B,A
+	ld	A,(DUN_VC)
+	cp	B
+	jr	c,DU3b
+	jp	DU901
+DU3b:	jp	DU3
+
+	; Coloca Salas abiertas
+DU901:	ld	IX,DUN_PS
+	ld	IY,DUN_DU
+	ld	A,(IX+2)	; A PS[2] hi ha la cantitat de rooms obertes
+	ld	HL,DUN_ER	; Array de quines s'han de fer en obertes
+	ld	B,A		; Preparo contador
+	cp	0
+	jr	nz,.LOOP
+	jr	DU950		; Si no s'han de fer habitacion obertes, surtu
+.LOOP: push	IY
+	ld	E,(HL)
+	ld	D,0
+	add	IY,DE
+	ld	A,(IY)		; Obro murs N,S,E,O a la sala en concret
+	or	00001111b
+	ld	(IY),A
+	ld	A,(IY-8)	; Obro murs al S a sala -8
+	or	00000100b
+	ld	(IY-8),A
+	ld	A,(IY+8)	; Obro murs al N a sala +8
+	or	00000001b
+	ld	(IY+8),A
+	ld	A,(IY-1)	; Obro murs al E a sala -1
+	or	00000010b
+	ld	(IY-1),A	; Obro murs al O a sala +1
+	ld	A,(IY+1)
+	or	00001000b
+	ld	(IY+1),A
+	pop	IY
+	inc	HL
+	djnz	.LOOP
+
+	;Coloca Casilla de Inicio, Salida y Llave
+DU950:
+	ld	A,(IX+3)
+	call	DURNIN		; gira els bits de A 00YYYXXX a 00XXXYYY
+	push	IY
+	pop	HL
+
+	push	DE
+	ld	D,0
+	ld	E,A
+	add	HL,DE
+	pop	DE
+
+	ld	A,(HL)		; Coge Contenido de la casilla para [Inicio]
+	or	00010000b
+	ld	(HL),A
+	ld	A,(IX+4)
+	call	DURNIN		; gira els bits de A 00YYYXXX a 00XXXYYY
+	push	IY
+	pop	HL
+
+	push	DE
+	ld	D,0
+	ld	E,A
+	add	HL,DE
+	pop	DE
+
+	ld	A,(HL)		; Coge Contenido de la casilla para [Salida]
+	or	00100000b
+	ld	(HL),A
+	ld	A,(IX+5)
+	call	DURNIN		; gira els bits de A 00YYYXXX a 00XXXYYY
+	push	IY
+	pop	HL
+
+	push	DE
+	ld	D,0
+	ld	E,A
+	add	HL,DE
+	pop	DE
+
+	ld	A,(HL)		; Coge Contenido de la casilla para [Llave]
+	or	01000000b
+	ld	(HL),A
+
+	ret
+
+;----------------------
+; Valors Statics : ROM
+;----------------------
+;DUN_ME: db      1,1,1,1,1,1,1,1 ; 1=N 2=E 4=S 8=O
+;	 db      2,2,2,2,2,2,2,2
+;        db      1,2,1,2,1,2,1,2
+; 	 db      4,8,4,8,4,8,4,8
+;        db      4,2,1,8,1,2,4,8
+;        db      1,1,2,2,4,8,1,2
+;        db      8,4,2,1,8,4,2,1
+;        db      4,2,2,1,8,8,8,1
+
+;DUN_ER: db	9,19,22,37,50,53 ; Rooms Abiertas [no poden ser limit del array]
+;-----------------------
+; Rutines propies de DU
+;-----------------------
+	; Aquesta rutina gira els bits de A 00YYYXXX a 00XXXYYY
+	; Modifica C y B
+	; IN: A
+	; OUT: A
+DURNIN:	ld	C,A
+	and	00000111b
+	sla	A
+	sla	A
+	sla	A
+	ld	B,A
+	ld	A,C
+	and	00111000b
+	srl	A
+	srl	A
+	srl	A
+	or	B
+	ret
+
+;-----------------
+; Variables : RAM
+;-----------------
+;DUN_DU:	ds	64	; Masmorra acabada
+;DUN_ST:	ds	64	; Stack de casillas pisadas
+;DUN_PS:	ds	6	; SEED descompuesta
+;DUN_SE:  	ds	4	; SEED comprimida
+;DUN_DX:	byte		; Posicio X per recorre [index]
+;DUN_DY:	byte		; Posicio Y per recorre [index]
+;DUN_DI:	byte		; Index per recorre [x.y]
+;DUN_VC:	byte		; Pasos realizados
+;DUN_IM0: 	byte		; Inicia Atzar [Valor Incial]
+;DUN_IM:	byte		; Inicia Atzar [Valor que varia]
+;DUN_IS:	byte		; Index de DUN_ST
+;DUN_NE:	byte		; Casella que es construeix del Dungeon

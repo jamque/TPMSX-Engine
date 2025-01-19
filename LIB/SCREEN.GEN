@@ -1,0 +1,59 @@
+; /////////////////////////////
+; //////// SCREEN /////////////
+; /////////////////////////////
+
+; Posa Screen A i mode de Sprites 16 no ampliat
+
+; A = Modo de Screen deseado
+
+; Cal RAM : res
+; Toca	  : IX,IY
+; Retorna : res
+; Usa fun.: BIOS call interslot
+
+SCREEN_BIOS	EQU 05Fh
+EXPTBL	EQU 0FCC1h
+
+SCREEN:
+	ld 	IY,(EXPTBL-1)
+	ld 	IX,SCREEN_BIOS
+	call 	CALSLT
+	ld	A,1
+	call	COLORBR
+
+	ld	A,11100010b	; Screen,Sprites de 16x16
+	out 	(99h),A
+	ld	A,80h + 01h
+	out	(99h),A
+	ret
+
+; Apaga la pantalla
+; Requereix interrupcions deshabilitades
+SCREEN_OFF:
+	ld	A,10100010b	; Screen,Sprites de 16x16
+	;and	11011111b	; Bit 5 IE0  V-Blank Interrupt (0=Disable)
+	out 	(99h),A
+	ld	A,80h + 01h
+	out	(99h),A
+	ret
+
+; Encen la pantalla
+; Requereix interrupcions deshabilitades
+SCREEN_ON:
+	ld	A,11100010b	; Screen,Sprites de 16x16
+	;and	11011111b	; Bit 5 IE0  V-Blank Interrupt (0=Disable)
+	out 	(99h),A
+	ld	A,80h + 01h
+	out	(99h),A
+	ret
+
+SCREEN_SOLIDCOLOR0:
+	; Toca R8, en Screen 5 valor base es 08h
+	;   bits 2-3  VRS   VRAM size and speed
+	;  (0=1*16KB,1=4*16KB,2=1*64KB,3=64KB/HighSpeed)
+	ld	A,08h
+	or	00100000b	; Bit a 1 per color zero solid
+	out	(99h),A
+	ld	A,80h + 08h
+	out	(99h),A
+	ret

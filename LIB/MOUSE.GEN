@@ -10,20 +10,25 @@
 ; Cal RAM : MOUSEX, MOUSEY, MOUSESPR
 ; Toca	  : res
 ; Retorna : res
-; Usa fun.: 
+; Usa fun.:
 
 MOUSE_IS:
-	xor	A	; Suposem que no hi ha ratoli. Posem un 0.
-	ld	[MOUSEON],A
-	ld	A,[PLY1CONTROL]
-	and	0Fh
-	cp	0Fh	; S'ha detectat mouse posem un 1 a MOUSEON
-	jr	nz,@@END
-	ld	A,1
-	ld	[MOUSEON],A
-@@END:
+	ld	B,0FFh
+	ld	A,(MOUSERELX)
+	cp	B
+	jr	nz,.CONTROL_MOUSE
+	ld	A,(MOUSERELX)
+	cp	B
+	jr	nz,.CONTROL_MOUSE
+	xor	A
+	ld	(MOUSEON),A
 	ret
-	
+.CONTROL_MOUSE:
+	ld	A,1
+	ld	(MOUSEON),A
+.END:
+	ret
+
 ; //////////////////////////////////
 ; ///////// MOUSEINI ///////////////
 ; //////////////////////////////////
@@ -31,156 +36,85 @@ MOUSE_IS:
 ; Cal RAM : MOUSEX, MOUSEY, MOUSESPR
 ; Toca	  : res
 ; Retorna : res
-; Usa fun.: 
+; Usa fun.:
 
 MOUSEINI:
-	ld	A,(256/2)-8	; Mitad de la pantalla y sprite mouse 16px
-	ld	[MOUSEX],A
-	ld	A,(212/2)-8	; Mitad de la pantalla y sprite mouse 16px
-	ld	[MOUSEY],A
+	ld	A,[256/2]-8	; Mitad de la pantalla y sprite mouse 16px
+	ld	(MOUSEX),A
+	ld	A,[212/2]-8	; Mitad de la pantalla y sprite mouse 16px
+	ld	(MOUSEY),A
 	xor	A
-	ld	[MOUSESPR],A
+	ld	(MOUSESPR),A
 	ret
 
 ; //////////////////////////////////
 ; ///////// GETMOUSE ///////////////
 ; //////////////////////////////////
-; basado en rutina de Edwin de MSX.org (24/10/2009)
+; basado en rutina de Edwin de MSX.org [24/10/2009]
 ; edwin@balpol.tudelft.nl
 
-; Agafa els valors x y del ratoli 
+; Agafa els valors x y del ratoli
 ; i guarda a MOUSERELX,MOUSERELY
 
 ; D E=.... Port del ratolí
 
 ; Cal RAM : MOUSERELX,MOUSERELY
-; Toca	  : D,E,H,L
+; Toca	  : C,D,E
 ; Retorna : MOUSERELX=X-offset
 ;	    MOUSERELY=Y-offset
-;	    H=L=255 if no mouse is present!
-; Usa fun.: 
+;	    X=Y=255 if no mouse is present!
+; Usa fun.:
 
 GETMOUSE:
         ld    D,10010011b     ; Use these values for a mouse in port 1
-        ld    E,00010000b 
+        ld    E,00010000b
 ;        ld    D,11101100b     ; Use these values for a mouse in port 2
 ;        ld    E,00100000b
 
 ; Read the mouse.   Input: D/E=.... Output: H=X-offset, L=Y-offset
 ; Note that the routine will output H=L=255 if no mouse is present!
-GTMOUS: 
+GTMOUS:
         ld	B,30         	; Long delay for first read
-        call  	@@GTOFS2        ; Read bit 7-4 of the x-offset
+        call  	.GTOFS2        ; Read bit 7-4 of the x-offset
         and   	0Fh
 	rlca
         rlca
         rlca
         rlca
         ld    	C,A
-        call  	@@GTOFST        ; Read bit 3-0 of the x-offset
+        call  	.GTOFST        ; Read bit 3-0 of the x-offset
         and   	0Fh
         or    	C
-        ld    	[MOUSERELX],A   ; Store combined x-offset
-        call  	@@GTOFST        ; Read bit 7-4 of the y-offset
+        ld    	(MOUSERELX),A   ; Store combined x-offset
+        call  	.GTOFST        ; Read bit 7-4 of the y-offset
         and   	0Fh
         rlca
         rlca
         rlca
         rlca
         ld    	C,A
-        call  	@@GTOFST        ; Read bit 3-0 of the y-offset
+        call  	.GTOFST        ; Read bit 3-0 of the y-offset
         and   	0fH
         or    	C
-        ld    	[MOUSERELY],A   ; Store combined y-offset
+        ld    	(MOUSERELY),A   ; Store combined y-offset
         ret
 
-@@GTOFST: 
+.GTOFST:
 	ld    	B,10		; Short delay value
-@@GTOFS2:
+.GTOFS2:
 	ld    	A,15            ; Read psg register 15 voor mouse
-        out   	[0A0h],A
+        out   	(0A0h),A
         ld    	A,D
-        out   	[0A1h],A
+        out   	(0A1h),A
         xor   	E
         ld    	D,A
 
-@@WAIT:	djnz	@@WAIT           ; Extra delay because the mouse is slow.
+.WAIT:	djnz	.WAIT           ; Extra delay because the mouse is slow.
 
         ld    A,14
-        out   [0A0h],A
-        in    A,[0A2h]
+        out   (0A0h),A
+        in    A,(0A2h)
         ret
 
-; ////////////////////////////////
-; ///////// CURSOR ///////////////
-; ////////////////////////////////
-; Actualitza MOUSEX,MOUSEY i el posa per pantalla
-; Controla els limits de 0-255 i de 0-210
-
-CURSOR:
-        ld    	A,[MOUSERELX]   
-	cp	0FFh
-	jr	z,@@Y		; No modifiques MOUSEX per no hi ha ratoli
-@@X:
-	cp	128		; Si es <128 <<-Resta sino ->>Suma
-	jr	C,@@RESTAX
-@@SUMAX:
-	ld	B,A
-	ld	A,[MOUSEX]
-	sub	B
-	jr	C,@@GUARDAX
-	ld	A,255
-	jr	@@GUARDAX
-@@RESTAX:
-	ld	B,A
-	ld	A,[MOUSEX]
-	cp	B		; Si MOUSEX<MOUSERELX No Fas la resta
-	jr	C,@@GUARDAZEROX
-	sub	B
-	jr	@@GUARDAX
-@@GUARDAZEROX:
-	xor	A
-@@GUARDAX:
-	ld	[MOUSEX],A	; Guardo a MOUSE-X
-	
-@@Y:
-        ld    	A,[MOUSERELY] 
-	cp	0FFh
-	jr	z,@@TOSCREEN	; No modifiques MOUSEY per no hi ha ratoli
-	
-	cp	128		; Si es <128 <<-Resta sino ->>Suma
-	jr	C,@@RESTAY
-@@SUMAY:
-	ld	B,A
-	ld	A,[MOUSEY]
-	sub	B
-	cp	192
-	jr	C,@@GUARDAY
-	ld	A,192
-	jr	@@GUARDAY
-@@RESTAY:
-	ld	B,A
-	ld	A,[MOUSEY]
-	cp	B		; Si MOUSEY<MOUSERELY No Fas la resta
-	jr	C,@@GUARDAZEROY
-	sub	B
-	jr	@@GUARDAY
-	
-@@GUARDAZEROY:
-	xor	A
-@@GUARDAY:
-	ld	[MOUSEY],A	; Guardo a MOUSE-X
-
-@@TOSCREEN:
-	ld   	HL,[MOUSEX]	; Carrego Y-X de golpe
-	ld	A,[MOUSESPR]	; Que sprite usar para cursor.
-	sla	A
-	sla	A
-	ld	D,A
-	ld	E,4
-	ld	C,0
-	call 	PUTSPRT
-	
-	ret
 
 
