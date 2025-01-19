@@ -22,6 +22,7 @@ What's new:
   - LIB/SCREEN22.GEN
   - LIB/TILE2SP.GEN
   - LIB/TILE2SP8x8.GEN
+  - RAM/PLY41RUT.RAM
 - New system to access VDP with MACROS and keep a copy og VDP registers in RAM.
 - Added support libraries for JOYMEGA 3 and 6 buttons
 - Added support libraries for Trilotracker
@@ -32,8 +33,12 @@ What's new:
   - LIB/CHECKMSX2.GEN
   - LIB/CLRSCR5.GEN
   - LIB/COMVDP.GEN
-  - LIB/SCREEN.GEN
+  - LIB/MEGAROM.GEN
+  - LIB/MSX2_PUTPAL.GEN
+  - LIB/MSX2_SCREEN.GEN
+  - LIB/SETPAGEVIEW.GEN
   - LIB/SPRITES2.GEN
+  - RAM/VIDEO_MSX2.RAM
 
 New Libraries files added:
 
@@ -74,9 +79,21 @@ Copy keyboard for play a game (cursors/Space/M or Graph) to Joystick variable.
 
 Load a full screen GFX in Screen 2.
 
+* LIB/MEGAROM.GEN
+
+Prepare some variabler to load Screen 5 images from Konami4 Megarom pages
+
 * LIB/MULT.GEN
 
 MUL 8 bits x 8 bits.
+
+* LIB/MSX2_PUTPAL.GEN
+
+Palette MSX2 Routines
+
+* LIB/MSX2_SCREEN.GEN
+
+V9938 MSX2 Routines to set screen parameters
 
 * LIB/PLY42RUT.GEN
 
@@ -89,6 +106,10 @@ Copy tiles to VRAM Screen 2 without a ID tile as transparent.
 * LIB/RANDOM.GEN
 
 Generates a good random number.
+
+* LIB/SETPAGEVIEW.GEN
+
+Set Page view in screen 5 VDP 9938 MSX2
 
 * LIB/SCREEN.GEN
 
@@ -106,6 +127,7 @@ PUT SPRITE for MSX2 (Screen4...8).
 * LIB/TTREPLAYDAT.GEN
 * LIB/TTSCCDETECT.GEN
 * LIB/TTvoltable_combined.bin
+* RAM/TTREPLAY.RAM
 
 Replays for SCC+PSG TriloTracker re-player v0.3.1.
 SCC-search v1.0 by Alwin Henseler.

@@ -1,0 +1,83 @@
+; Rutines per posicionar págines MEGAROM
+
+
+
+; /////////////////////////////////////
+; ///////// MEGAROM_SETGFXPAGES  //////
+; /////////////////////////////////////
+
+; HL = GFX a cargar, estructura de 7 bytes
+
+; Cal RAM : GFXDATA_OLDPAGES, GFXDATASC5
+; Toca	  : res
+; Retorna : res
+; Usa fun.: res
+
+MEGAROM_SETGFXPAGES:
+	xor	A
+	ld	(GFXDATA_OLDPAGES),A
+	ld	(GFXDATA_OLDPAGES+1),A
+	ld	(GFXDATA_OLDPAGES+2),A
+	; Preparem las Pages
+	ld	A,(06000h)
+	ld	(GFXDATA_OLDPAGES),A
+	ld	A,(GFXDATASC5)
+	or	A
+	jr	z,.NEXT8000
+	ld	A,(GFXDATASC5)
+	SELECT	A AT 06000h
+
+.NEXT8000:
+	ld	A,(08000h)
+	ld	(GFXDATA_OLDPAGES+1),A
+	ld	A,(GFXDATASC5+1)
+	or	A
+	jr	z,.NEXTA000
+	ld	A,(GFXDATASC5+1)
+	SELECT	A AT 08000h
+
+.NEXTA000:
+	ld	A,(0A000h)
+	ld	(GFXDATA_OLDPAGES+2),A
+	ld	A,(GFXDATASC5+2)
+	or	A
+	ret	z
+	ld	A,(GFXDATASC5+2)
+	SELECT	A AT 0A000h
+	ret
+
+
+; //////////////////////////////////////
+; ///////// MEGAROM_RESTOREPAGES  //////
+; //////////////////////////////////////
+
+; Cal RAM : GFXDATA_OLDPAGES, GFXDATASC5
+; Toca	  : res
+; Retorna : res
+; Usa fun.: res
+
+MEGAROM_RESTOREPAGES:
+	; Recuperem las Pages
+	ld	A,(GFXDATA_OLDPAGES)
+	or	A
+	jr	z, .NEXT8000
+	SELECT	A AT 06000h
+.NEXT8000:
+	ld	A,(GFXDATA_OLDPAGES+1)
+	or	A
+	jr	z, .NEXTA000
+	SELECT	A AT 08000h
+.NEXTA000:
+	ld	A,(GFXDATA_OLDPAGES+2)
+	or	A
+	jr	z,.END
+	SELECT	A AT 0A000h
+.END:
+	xor	A
+	ld	(GFXDATA_OLDPAGES),A
+	ld	(GFXDATA_OLDPAGES+1),A
+	ld	(GFXDATA_OLDPAGES+2),A
+	ld	(GFXDATASC5),A
+	ld	(GFXDATASC5+1),A
+	ld	(GFXDATASC5+2),A
+	ret

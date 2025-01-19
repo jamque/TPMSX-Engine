@@ -46,14 +46,3 @@ SCREEN_ON:
 	ld	A,80h + 01h
 	out	(99h),A
 	ret
-
-SCREEN_SOLIDCOLOR0:
-	; Toca R8, en Screen 5 valor base es 08h
-	;   bits 2-3  VRS   VRAM size and speed
-	;  (0=1*16KB,1=4*16KB,2=1*64KB,3=64KB/HighSpeed)
-	ld	A,08h
-	or	00100000b	; Bit a 1 per color zero solid
-	out	(99h),A
-	ld	A,80h + 08h
-	out	(99h),A
-	ret
