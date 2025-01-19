@@ -1,0 +1,136 @@
+; Contiene
+; SPRT_INI :		Inicialitza la taula RAM de SPRITES
+; SPRT_COLOR_INI:	Inicialitza la taula RAM de colors
+;			   dels SPRITES amb el color triat en A
+; PUTSPRT : 		PUT SPRiTe com el de Basic a RAM SPRRAM
+
+
+; ////////////////////////////////
+; //////// SPRT_INI //////////////
+; ////////////////////////////////
+
+; Inicialitza la taula RAM de SPRITES
+; [X,Y]->[255,0] Color 0 y pattern A
+
+; A = Num.Sprite
+; IX= Direccio Taula RAM de SPRITES
+
+; Cal RAM : res
+; Toca	  : BC,DE,IX
+; Retorna : res
+
+SPRT_INI:
+	; Inicialitzo la taula RAM de SPRITES
+	sla	A
+	sla	A
+	ld	DE,4
+	ld	B,32
+.LOOP1:
+	ld	(IX),191	;Y =208 Especial Apagar
+	ld	(IX+1),255	;X
+	ld	(IX+2),A	;Pattern
+	;ld	(IX+3),0	;Color [Sin uso en MSX2]
+	add	IX,DE
+	djnz	.LOOP1
+
+	ret
+
+; //////////////////////////////////////
+; //////// SPRT_COLOR_INI //////////////
+; //////////////////////////////////////
+; Inicialitza la taula RAM de colors dels SPRITES
+;  amb el color triat en A
+
+; A = Color Iniciador
+; HL = Direccio Taula RAM de colors dels SPRITES
+
+; Cal RAM : res
+; Toca	  : BC,DE,HL
+; Retorna : res
+
+SPRT_COLOR_INI:
+	ld	BC,512-1
+	push	HL
+	pop	DE
+	inc	DE
+	ld	(HL),A
+	ldir
+	ret
+
+; ////////////////////////////////
+; ///////// PUTSPRT //////////////
+; ////////////////////////////////
+
+; PUT SPRiTe com el de Basic
+
+; H = Coordenada Y
+; L = Coordenada X
+; D = Patt.Num [*4 si es 16x16]
+; E = numero de block de dades de color del sprite
+; C = Plano de Sprite [0 - 32]
+
+; Cal RAM : SPRRAM [128bytes]
+; Toca	  : DE,HL
+; Retorna : res
+; Usa fun.: res
+
+PUTSPRT:
+	push	DE
+	push	HL
+
+	ld	A,C
+	ld 	HL,SPRRAM
+	sla	A
+	sla	A
+	ld	D,0
+	ld	E,A
+	add	HL,DE
+
+	pop	DE	;Recupero [Y,X]HL a DE
+	ld	(HL),D
+	inc	HL
+	ld	(HL),E
+	inc	HL
+
+	pop	DE	;Recupero [Patt,DE
+	; Verifica si hi ha un canvi de Patt,
+	;   en el cas que sí, toquem el SPRCOLRAM
+	ld	A,(HL)
+	cp	D
+	ret	z
+	ld	(HL),D
+
+	; Guardo el color del sprite
+	ld 	HL,SPRCOLRAM
+	ld	D,0
+	push	DE	; Guardo block de color per agafar de RAM
+	ld	E,C
+	; Multiplico per 16 [4 veces]
+	sla	E
+	rl	D
+	sla	E
+	rl	D
+	sla	E
+	rl	D
+	sla	E
+	rl	D
+	add	HL,DE ; Direccio RAM on va a parar la info de color
+	pop	DE	; Recupero block de color
+	push	HL
+	ld	HL,COLOR_DATA
+	; Multiplico per 16 [4 veces]
+	sla	E
+	rl	D
+	sla	E
+	rl	D
+	sla	E
+	rl	D
+	sla	E
+	rl	D
+	add	HL,DE	; Direccio RAM on hi ha el color del sprite
+	pop	DE	; Recupero destinacio del color
+	push	BC
+	ld	BC,16
+	ldir
+	pop	BC
+	ret

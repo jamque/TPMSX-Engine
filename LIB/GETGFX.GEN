@@ -1,42 +1,42 @@
-; GETGFX
-; Copia un grafico almacenado en memoria a otra posicion de memoria.
-; El grafico ha de tener los dos primero bytes su tamaño
-; Primer byte: Alto
-; Segun byte: Ancho
-; Resto de bytes: Datos, números de tiles
-; Entrada:
-; 	IX -> direccion de memoria del GFX (2 BYTES iniciales altura y anchura)
-; 	IY ->	direccion RAM del BUFFER origen
-; Salida:
-;	-
-; Modifica:
-;	BC,DE,IX,IY
-; Dependencias:
-; -
+; Rutines per posar/copiar Grafics de tiles
+;  on els dos primers bytes indiquen la mida que tenen
+;
+; GETGFX : Copia Grafic RAM BUFFER DE VIDEO a RAM [Cal regio de RAM]
+; /////////////////////////
+; ///////// GETGFX ////////
+; /////////////////////////
+; Pilla un GFX de tiles en una posicio determinada del BUFFER i el guarda a RAM
+; IX = 	direccio RAM del GFX [2 BYTES ALÇADA i AMPLE]
+; IY = 	direccion RAM del BUFFER origen
+
+; Cal RAM : res
+; Toca	  : A,BC,DE,HL,IX,IY
+; Retorna : res
+; Usa fun.: res
 GETGFX:
-	; Cargo cuantas lineas
-	ld	A,[IX]
+	; Carrego quantes lineas
+	ld	A,(IX)
 	ld	B,A	; Preparo contador
 	inc	IX
-	; Cargo cuantas tiles de ancho
-	ld	A,[IX]
+	; Carrego quantes tiles d'ample
+	ld	A,(IX)
 	ld	E,A	
 	inc	IX
-@@LOOPFILA:
+.LOOPFILA:
 	push	BC
 	ld	B,E	; Numero de tiles
-@@LOOPTILE:
-	ld	A,[IY]	; Copio una tile
-	ld	[IX],A
+.LOOPTILE:
+	ld	A,(IY)	; Copio una tile
+	ld	(IX),A
 	inc	IX
 	inc	IY
-	djnz	@@LOOPTILE
+	djnz	.LOOPTILE
 	ld	A,32
 	sub	E	; 32-Numero de tiles es el incremento de IY
 	ld	C,A
 	add	IY,BC
 	pop	BC
-	djnz	@@LOOPFILA
+	djnz	.LOOPFILA
 
 	ret
 

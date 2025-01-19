@@ -1,0 +1,55 @@
+; ///////////////////////////////
+; ///////// PUTPAL  // SCR4-7  //
+; ///////////////////////////////
+
+; Pone una paleta nueva en los registros
+; Codigos de color de 0 a 15 [16 en total]
+
+; HL = Offset de la paleta en RAM/ROM
+
+; Cal RAM : res
+; Toca	  : C
+; Retorna : res
+; Usa fun.: res
+
+PUTPAL:
+	xor	A
+	m_WRITE_DATA_REGISTER 10h	; Register 10h: Palette Index
+	ld	C,9Ah	; 32 vegades a port 9A
+
+	; Sin esperas pq VDP del MSX2 no las requiere.
+REPT 32
+	outi
+	nop
+	nop
+	nop
+ENDR
+
+	ret
+
+; ////////////////////////////////////////
+; ///////// PUTPAL_ONECOLOR  // SCR4-7  //
+; ////////////////////////////////////////
+
+; Pone un color solo a la paleta activa
+; Codigos de color de 0 a 15 [16 en total]
+
+; A = Codigo de color 0-15
+; HL = Color RBG H=RB L=G
+
+; Cal RAM : res
+; Toca	  : C
+; Retorna : res
+; Usa fun.: res
+
+PUTPAL_ONECOLOR:
+	push	AF
+	m_WRITE_DATA_REGISTER 10h	; Register 10h: Palette Index
+
+	ld	C,9Ah	; a port 9A
+	out	(C),H
+	out	(C),L
+	xor	A	; Reset al registre de color inicial amb 0
+	m_WRITE_DATA_REGISTER 10h	; Register 10h: Palette Index
+	pop	AF
+	ret

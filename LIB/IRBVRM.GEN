@@ -1,0 +1,59 @@
+; ////////////////////////////////
+; ///////// IRBVRM ///////////////
+; ////////////////////////////////
+
+; Read Bloq Video RaM
+; volca B blocs de 8 bytes desde direccio VRAM DE a la direccio RAM HL
+; No utilitza BIOS, desavilita les interupcions
+; 29/12/04 Arnau Castellvi / Zona Neutra
+; 12/08/2018 Rafel Perez /ThePetsmode
+
+; B  = 	Blocs de 8 bytes
+; HL = 	direccio RAM
+; DE = 	direccion VRAM
+
+; Cal RAM : res
+; Toca	  : A,BC,D
+; Retorna : res
+; Usa fun.: res
+
+IRBVRM:
+	ld 	A,E
+	out 	(99h),A
+	ld 	A,D
+	and 	00111111b
+	out 	(99h),A
+	ld 	C,98h
+IRBVRM0:
+	ld 	D,B
+	ini
+	nop
+	nop
+	nop
+	ini
+	nop
+	nop
+	nop
+	ini
+	nop
+	nop
+	nop
+	ini
+	nop
+	nop
+	nop
+	ini
+	nop
+	nop
+	nop
+	ini
+	nop
+	nop
+	nop
+	ini
+	nop
+	nop
+	ld 	B,D
+	ini
+	jr 	nz,IRBVRM0
+	ret

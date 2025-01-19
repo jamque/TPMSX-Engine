@@ -3,7 +3,7 @@
 ; ///////// GAMEMOTOR ////////////
 ; ////////////////////////////////
 GAMEMOTOR:
-	; PUT YOUR GAME CODE HERE
+	; POSA EL TEU CODI AQUI
 	
 	ret
 
@@ -11,12 +11,18 @@ GAMEMOTOR:
 ; ////////////////////////////////
 ; ///////// GAMEINI //////////////
 ; ////////////////////////////////
-; Iniciazación de Variables del juego
+; Inicialitzacio de Variables del joc
 GAMEINI:
+	; Posa color negre al borde
+	ld	A,1
+	call	COLORBR
+
+	ld	A,1
+	ld	(PT3_NUMSONG),A
 	xor	A
-	ld	[PT3_SECOND],A
-	ld	[PT3_FRAME],A
-	ld	[PT3_PATTERN_POS],A
+	ld	(PT3_SECOND),A
+	ld	(PT3_FRAME),A
+	ld	(PT3_PATTERN_POS),A
 
 	ld	hl,MUSIC_PT3
 	call	PT3_SELECTMUSIC
@@ -35,10 +41,6 @@ GAMEINI:
 ; ////////////////////////////////
 ; Sprite colision
 ; Similar al ON SPRITE GOSUB del BASIC
-
-; Toca	  : BC,DE,HL,IX
-; Usa	  : 
-
 SPRTCOL:
 ;***** Activar Control Temps Timer ***
 IFDEF	TEST_BORDES
@@ -51,12 +53,12 @@ ENDIF
 
 SPRTCOLEND:
 	xor	A
-	ld	[TIM_SPC],A
+	ld	(TIM_SPC),A
 ;***** Activar Control Temps Timer ***
-;IFDEF	TEST_BORDES
+IFDEF	TEST_BORDES
 	ld	A,1
 	call	COLORBR
-;ENDIF
+ENDIF
 ;*************************************
 	ei
 	ret
@@ -69,5 +71,5 @@ SPRTCOLEND:
 ;   propias del juego en especifico
 MOTOR_TIMER_SPECIAL:
 
-@@END:
+.END:
 	ret

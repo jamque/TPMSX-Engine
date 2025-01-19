@@ -1,0 +1,49 @@
+; Video per MSX2
+
+SPRCOLRAM:	ds	512	; (32 planos * 16 filas)
+
+MSXID:			byte ; 1=MSX2 o superior  0=MSX
+VPALETTECURRENT:	byte ; Guarda el ID de la paleta actual. (Init = 1)
+VPALETTEMSX2:		byte ; Guarda el ID de la paleta actual de MSX2.
+VPALETTE_DATA:	ds	32	; Guarda les dades de la paleta actual
+				; L'actualitaza PUTPAL
+SELECT_PRESS:		byte ; Flag per repulsar SELECT
+HBLANK_LINE:		byte ; Ultima linea marcada como HBLANK
+HBLANK_FRAMELINE:	byte ; Linea on hauria d'estar el HBLANK actual
+
+SCENE_FRAME_DONE:	byte ; Nos indica que acaba de pasar por VSYNC
+			      ;  se pone a 1 en TIMER, lo ponemos a cero a mano
+SCENE_NOUSESPRITES:	byte ; Indica si es 1, que no actualice sprites
+			      ;  en TIMER.
+
+SCROLLVAL:	byte		; Linea Actual del Scroll
+; Video Commands
+VDPCOMDATA:	ds	15	; 0: Source XL
+				; 1: Source XH [Normal a cero si SCR 5]
+				; 2: Source YL
+				; 3: Source YH [Page 0-3]
+				; 4: Destiny XL
+				; 5: Destiny XH [Normal a cero si SCR 5]
+				; 6: Destiny YL
+				; 7: Destiny YH [Page 0-3]
+				; 8: Width XL
+				; 9: Width XH [Normal a cero si SCR5]
+				;10: Height YL
+				;11: Height YH [Normal a cero si SCR5]
+				;12: Color Register
+				;13: Arguments [Habitual 000000-EQ-MAJ = 00h para VRAM<->VRAM]
+				;14: Comando a ejecutar
+				;	HighSpeed CMD: (Que conozco)
+				;		000h: Stop
+				;		0E0h: Highspeed Copy Vertically, VRAM -> VRAM
+				;		0D0h: Copy Rectangle VRAM->VRAM
+				;		098h: Copy Rectangle VRAM->VRAM Mask color 0
+				;		080h: Fill Rectangle [LineBF]
+				;		070h: Line normal with color
+;Zona para datos de Background a cargar en Screen 5
+GFXDATASC5:
+GFXDATASC5_PAG:	ds	3	; (0,1,2) Pages 6000,8000,A000 O cero si no se usa
+GFXDATASC5_DIR:	ds	2	; (3-4) etiqueta de inicio de gfx
+GFXDATASC5_PAL: ds	2	; (5-6) etiqueta de paleta
+GFXDATA_OLDPAGES:
+	ds	3	; Anteriores Pages 6000,8000,A000 O cero si no se usa

@@ -1,0 +1,140 @@
+; Rutinas by Imanok
+; Requiere RAM
+; slotram
+; slotvar
+
+; *** Ejemplo llamada ***
+;call	search_slotram	; SOLO HACERLO UNA VEZ, al principio de programa
+;ld	hl,GAME_PAT
+;ld	de,buffer_datos_slot3
+;ld	bc,1200
+;call	SLOT3COPY2RAM
+; OJO QUE DEJA LAS INTERRUPCIONES DESACTIVADAS
+
+;----------------------------------------
+; SETSLOTPAGE3
+; Posiciona el slot pasado
+; en pagina 3 del Z80
+; A: Formato FxxxSSPP
+;----------------------------------------
+
+; ---------------------
+; SEARCH_SLOTRAM
+; Busca el slot de la ram
+; Y almacena
+; ----------------------
+
+search_slotram:
+	call	RSLREG
+	rlca
+	rlca
+	and	3
+	ld	C,A
+	ld	B,0
+	ld	HL,0FCC1h
+	add	HL,BC
+	ld	A,(HL)
+	and	080h
+	jr	z,search_slotram0
+	or	C
+	ld	C,A
+	inc	HL
+	inc	HL
+	inc	HL
+	inc	HL
+	ld	A,(HL)
+	rlca
+	rlca
+	rlca
+	rlca
+	and	0Ch
+search_slotram0:
+	or	C
+	ld	(slotram),A
+	ret
+
+SETSLOTPAGE3:
+	pop	HL                  ; Return with jp [hl]
+SETSLOTPAGE3_nomem:
+	ld	B,A                 ; B = Slot param in FxxxSSPP format
+	in	A,(0A8h)
+	and	000111111b
+	ld	D,A                 ; D = primary slot value
+	ld	A,B
+	and	3
+	rrca
+	rrca
+	or	D
+	ld	D,A                ; D = final value primary slot
+	out	(0A8h),A
+	ld	A,B
+	bit	7,A
+	jr	z,SETSLOTPAGE3_exit
+	ld	A,B
+	and	00001100b
+	rrca
+	rrca
+	rrca
+	rrca
+	and	011000000b
+	ld	B,A
+	ld	a,(0FFFFh)
+	cpl
+	and	000111111b
+	or	B
+	ld	(0FFFFh),A         ; Expanded slot selected
+SETSLOTPAGE3_exit:
+	jp	(HL)
+SETSLOTPAGE3_end:
+
+
+
+; --------------------
+; SLOT3COPY2RAM
+; TRANSFERENCIA_SLOT3
+; HL: Apunta a origen de datos [en slot rom]
+; DE: Apunta a destino  [en slot ram]
+; BC: Numero de bytes a transferir
+; ---------------------
+SLOT3COPY2RAM:
+	exx			; Activamos registros alternativos
+
+	ld	A,(slotram)
+	ld	E,A		; Guardamos el slot ram, ya que luego
+				;   no tendremos memoria para consultarlo
+
+	; *** Habilitamos slot rom ***
+	di                      ; Muy importante deshabilitar interrupciones,
+				;  ya que acceden a ram
+	ld	A,(slotvar)
+	call	SETSLOTPAGE3
+
+	; *** Leemos byte ***
+	exx			; Activamos registros normales
+	ld	A,(HL)		; Leemos byte de origen
+	exx			; Activamos registros alternativos
+
+	ld	C,A		; Guardo el byte leido
+
+	; *** Habilitamos slot ram ***
+	ld	HL,SLOT3COPY2RAM_ret	; Direccion de retorno de la
+					;    rutina SETSLTP3_NOMEM
+	ld	A,E			; Recupero el slot ram
+	jp	SETSLOTPAGE3_nomem
+
+SLOT3COPY2RAM_ret:
+	; *** Escribimos byte ***
+	ld	A,C		; Recupero el byte leido
+	exx			; Activamos registros normales
+	ld	(DE),A		; Escribimos byte en destino
+
+	; *** Actualizamos punteros ***
+	inc	HL		; Incrementamos puntero origen
+	inc	DE		; Incrementamos puntero destino
+
+	; *** Actualizamos datos restantes ***
+	dec	BC
+	ld	A,B
+	or	C
+	jr	nz,SLOT3COPY2RAM
+	ret

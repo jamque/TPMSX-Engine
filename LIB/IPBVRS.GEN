@@ -1,34 +1,35 @@
-; IPBVRS
+; ////////////////////////////////
+; ///////// IPBVRS ///////////////
+; ////////////////////////////////
+
 ; Interrupt put buffer videoram Sprite
-; Rutina para poner en VRAM el buffer de atributos de sprite.
-; Copia 128 bytes de RAM a VRAM
-; Supone VDP en puertos 98h, 99h
-; Requiere llamarse con interrupciones desactivadas
-; Entrada:
-;	HL -> Offset del buffer RAM de Atributos de Sprites.
-; Salida:
-;	-
-; Modifica:
-;	BC,DE
-; Dependencias:
-;	-
+; VOLCA buffer Sprite de 128 bytes A VRAM screen 1,2,3
+; Suposa VDP a port 98h,99h
+; Basat en IPBVRM
+; CAL cridar amb Interrupcions DESACTIVADES
+
+; HL = Offset del buffer
+
+; Cal RAM : res
+; Toca	  : BC,DE
+; Retorna : res
+; Usa fun.: res
+
 IPBVRS:		
-	ld	A,32
-	sla	A
-	sla	A
+	ld	A,128		; 128 bytes [32*4] Sprites
 	ld 	B,A		; Volcada de atributos de 32 Sprites
 	
 	ld 	DE,VRM_SPA
 	ld 	A,E
-	out 	[99h],A
+	out 	(99h),A
 	ld 	A,D
 	or 	40h
-	out 	[99h],A
+	out 	(99h),A
 	ld 	C,98h
-				; Volcado de los SPRITES
-@@LOOP_OUT:
-	ld	A,[HL]
-	out	[C],A
+	; Volcat dels SPRITES
+.LOOP_OUT:
+	ld	A,(HL)
+	out	(C),A
 	inc	HL
-	djnz	@@LOOP_OUT
+	djnz	.LOOP_OUT
 	ret

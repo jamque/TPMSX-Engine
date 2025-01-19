@@ -1,0 +1,20 @@
+; //////////////////////////////////////
+; ///////// SETPAGEVIEW ////////////////
+; //////////////////////////////////////
+; MSX2
+; Posa visible el numero de pagina seleccionat
+
+; A = Pagina Visible (0-3)
+
+SETPAGEVIEW:		; Envio a REG 2 0XX1 1111
+	sla	A
+	sla	A
+	sla	A
+	sla	A
+	sla	A
+	or	00011111b
+	out	(099h),A
+	ld	A,80h+02h ; Reg 2 Bitmap Table
+	out	(099h),A
+
+	ret

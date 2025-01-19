@@ -11,10 +11,10 @@
 
 ; IX = Inicio de Array RAM de Sprite 1
 ; IY = Inicio de Array RAM de Sprite 2
-; D  = Tamaño X de Sprite 1 (INCXSprt1)
-; E  = Tamaño Y de Sprite 1 (INCYSprt1)
-; B  = Tamaño X de Sprite 2 (INCXSprt2)
-; C  = Tamaño Y de Sprite 2 (INCYSprt2)
+; D  = Size X de Sprite 1 [INCXSprt1]
+; E  = Size Y de Sprite 1 [INCYSprt1]
+; B  = Size X de Sprite 2 [INCXSprt2]
+; C  = Size Y de Sprite 2 [INCYSprt2]
 
 ; Parejas DE, BC los valores serian
 ; 8x8	ld	RR,0808h
@@ -29,45 +29,57 @@
 ; Usa fun.: res
 
 SPRT2COL:
-	ld	A,[IX+2]	; Está actiu el sprite 1 ?
+	ld	A,(IX+2)	; Esta actiu el sprite 1 ?
 	cp	1
-	jr	nz,@@ENDNO	
-	ld	A,[IY+2]	; Está actiu el sprite 2 ?
+	jr	nz,.ENDNO
+	ld	A,(IY+2)	; Esta actiu el sprite 2 ?
 	cp	1
-	jr	nz,@@ENDNO	
+	jr	nz,.ENDNO
 	
-	ld	A,[IY+0]	; Y_Sprt1 < ( Y_Sprt2+INCYSprt2)
+	ld	A,(IY+0)	; Y_Sprt1 < [ Y_Sprt2+INCYSprt2]
 	add	A,C
+	jr	nc,.CONT
+	ld	A,0FFh
+.CONT:
 	ld	C,A
-	ld	A,[IX+0]
+	ld	A,(IX+0)
 	cp	C
-	jr	nc,@@ENDNO
+	jr	nc,.ENDNO
 	
-	;ld	A,[IX+0] 	[Anulable pq ya está el valor ahí]
-				; Y_Sprt2 < ( Y_Sprt1+INCYSprt1)
+	;ld	A,(IX+0) 	(Anulable pq ya esta el valor ahi)
+				; Y_Sprt2 < [ Y_Sprt1+INCYSprt1]
 	add	A,E
+	jr	nc,.CONT2
+	ld	A,0FFh
+.CONT2:
 	ld	E,A
-	ld	A,[IY+0]
+	ld	A,(IY+0)
 	cp	E
-	jr	nc,@@ENDNO	
+	jr	nc,.ENDNO
 	
-	ld	A,[IY+1]	; X_Sprt1 < ( X_Sprt2+INCXSprt2)
+	ld	A,(IY+1)	; X_Sprt1 < [ X_Sprt2+INCXSprt2]
 	add	A,B
+	jr	nc,.CONT3
+	ld	A,0FFh
+.CONT3:
 	ld	B,A
-	ld	A,[IX+1]
+	ld	A,(IX+1)
 	cp	B
-	jr	nc,@@ENDNO
+	jr	nc,.ENDNO
 	
-	;ld	A,[IX+1] 	[Anulable pq ya está el valor ahí]
-				; X_Sprt2 < ( X_Sprt1+INCXSprt1)
+	;ld	A,(IX+1) 	(Anulable pq ya esta el valor ahi)
+				; X_Sprt2 < [ X_Sprt1+INCXSprt1]
 	add	A,D
+	jr	nc,.CONT4
+	ld	A,0FFh
+.CONT4:
 	ld	D,A
-	ld	A,[IY+1]
+	ld	A,(IY+1)
 	cp	D
-	jr	nc,@@ENDNO
-@@ENDSI:
+	jr	nc,.ENDNO
+.ENDSI:
 	ld	A,1
 	ret
-@@ENDNO:
+.ENDNO:
 	xor	A
 	ret

@@ -1,0 +1,26 @@
+; ///////////////////////////
+; ///////// CHECKMSX2  //////
+; ///////////////////////////
+
+; Test si es un MSX2 o no, i ho guarda a RAM ISAMSX2
+; Ha d'estar a page 1 per fer-ho primer de tot.
+; CAL BIOS !!
+
+; Cal RAM : MSXID [VIDEO_MSX2.RAM]
+; Toca	  : res
+; Retorna : A MSXID [1=MSX2 o superior  0=MSX]
+; Usa fun.: res
+
+CHECKMSX2:
+	ld	A,(002Dh)	; Posicio BIOS on hi ha el tipus de MSX
+	or	A
+	jp	z,.NOMSX2
+	ld	A,1
+.NOMSX2:
+	ld	(MSXID),A
+	ret
+
+ISAMSX2:
+	ld	A,(MSXID)
+	or	A
+	ret

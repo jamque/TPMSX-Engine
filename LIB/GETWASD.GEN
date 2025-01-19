@@ -1,0 +1,44 @@
+; ////////////////////////////////////
+; ///////// GETWASD ///////////////
+; ////////////////////////////////////
+
+; Agafa els valors del cursors
+
+; HL =	Posicio variable CURSORS2
+
+; Cal RAM : TECLAT
+; Toca	  : A,IX
+; Retorna : Posicio (HL) bits 5-0 [B/A/R/L/D/U] per 1
+; Usa fun.: res
+
+GETWASD:
+	ld 	IX,TECLAT
+	xor	A
+
+	bit 	3,(IX+2)
+	jr 	nz,.NEXT2
+	or	00010000b	; TAB [11] Buton 1
+.NEXT2:
+	bit 	6,(IX+7)
+	jr 	nz,.NEXT3
+	or	00000100b	; Tecla A - ESQUERRA [87]
+.NEXT3:
+	bit 	4,(IX+4)
+	jr 	nz,.NEXT4
+	or	00000001b	; Tecla W - AMUNT [65]
+.NEXT4:
+	bit 	0,(IX+4)
+	jr 	nz,.NEXT5
+	or	00000010b	; Tecla S - ABALL [83]
+.NEXT5:
+	bit 	1,(IX+6)
+	jr 	nz,.NEXT6
+	or	00001000b	;Tecla D - DRETA [68]
+.NEXT6:
+	bit 	0,(IX+3)
+	jr 	nz,.GETWASDFI
+	or	00100000b	;GRAPH (Alt) [6]
+
+.GETWASDFI:
+	ld 	(HL),A
+	ret

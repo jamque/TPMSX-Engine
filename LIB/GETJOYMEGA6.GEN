@@ -1,0 +1,59 @@
+; ////////////////////////////////
+; //////// GETJOYMEGA6 ///////////
+; ////////////////////////////////
+
+; Agafa els valors del joystick especificat a A
+
+; A = 	0 Joystick 1
+;	1 Joystick 2
+; HL =	Posicio variable joystick (ocupa 2 bytes seguits)
+
+; Cal RAM : res
+; Toca	  : BC,DE,HL
+; Retorna : Posicio (HL)
+;		byte 0: bits 7-0 [START,A,C,B,Rt,Lt,Dn,Up] per 1, copia a C
+;		byte 1: bits 3-0 [MODE,X,Y,Z] per 1, copia a B i A
+; Usa fun.: BIOS -> WRTPSG, RDPSG
+
+GETJOYMEGA6:
+	or	A		; Equivale a CP 0 por flags
+	jr	z,.GETJO1	;Select
+	ld	DE,20CFh ; Port 2
+	jr	.GETJ02
+.GETJO1:
+	ld	DE,108Fh ; Port 1
+.GETJ02:
+	push	HL
+	ld	A,15
+	call	WRTPSG
+	m_RDJOYPORT
+	and	3Fh
+	ld	C,A	; c=0,0,C,B,Rt,Lt,Dn,Up
+	m_FLIPPORTOUT	; Flip Output high 2
+	m_RDJOYPORT
+	and	3Ch	; crop ST,A,ID1,ID0
+	add	A,A
+	add	A,A	; a=ST,A,ID1,ID0,0000
+	and	0C0h	; a=ST,A,0,0,0000
+	or	C	; a=ST,A,C,B,Rt,Lt,Dn,Up
+	ld	C,A	; c=ST,A,C,B,Rt,Lt,Dn,Up
+	m_FLIPPORTOUT	; Flip Output low 3
+	m_FLIPPORTOUT	; Flip Output high 4
+	m_FLIPPORTOUT	; Flip Output low 5
+	m_FLIPPORTOUT	; Flip Output high 6
+	m_FLIPPORTOUT	; Flip Output low 7
+	m_RDJOYPORT
+	cpl
+	and	0Fh	; Clear ID and crop MODE,X,Y,Z
+	ld	B,A	; b=0,0,0,0,MODE,X,Y,Z
+	; One last pulse to reset the joypad
+	m_FLIPPORTOUT	; Flip Output high 8
+	m_FLIPPORTOUT	; Flip Output low 1
+	ld	A,C
+	cpl
+	pop	HL
+	ld	(HL),A	; byte 0: bits 7-0 [START,A,C,B,Rt,Lt,Dn,Up] per 1
+	inc	HL
+	ld	A,B
+	ld	(HL),A	; byte 1: bits 3-0 [MODE,X,Y,Z] per 1
+	ret

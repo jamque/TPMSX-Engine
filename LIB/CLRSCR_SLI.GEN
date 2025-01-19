@@ -1,0 +1,19 @@
+; ////////////////////////////////
+; ///////// CLRSCR_SLI ///////////
+; ////////////////////////////////
+
+; Borra Buffer Cortinilla SLIDERI con tile 0
+
+; Cal RAM : VBUFF
+; Toca	  : BC,DE,HL i de SLIDERI
+; Retorna : res
+; Usa fun.: SLIDERI
+
+CLRSCR_SLI:
+	; Clear Screen con cortinilla
+	xor	A
+	ld	DE,0
+	ld	BC,32*256+24
+	ld	HL,VBUFF
+	call	SLIDERI
+	ret

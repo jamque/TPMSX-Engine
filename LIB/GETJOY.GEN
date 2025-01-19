@@ -1,34 +1,36 @@
-; GETJOY
-; Coge los valores del joystick especificado en A
-; Supone PSG en A0h y A1h
-; Entrada:
-; A -> 0 es Joystick 1
-;      1 es Joystick 2
-; HL =	Posicion variable donde guardar el resultado
-; Salida:
-;	En la posición [HL] los bits 5-0 (B/A/R/L/D/U) a 1 si se han pulsado
-; Modifica:
-;	B
-; Dependencias:
-;	-
+; ////////////////////////////////
+; ///////// GETJOY ///////////////
+; ////////////////////////////////
+
+; Agafa els valors del joystick especificat a A
+
+; A = 	0 Joystick 1
+;	1 Joystick 2
+; HL =	Posicio variable joystick
+
+; Cal RAM : res
+; Toca	  : res
+; Retorna : Posicio (HL) bits 5-0 [B/A/R/L/D/U] per 1, copia a A
+; Usa fun.: res
+
 GETJOY:
 	or	A		; Equivale a CP 0 por flags
-	jr	z,@@GETJO1	;Select 
+	jr	z,.GETJO1	;Select
 	ld	B,01000000b	;Select Joy 2 & Rst Pulse 2
-	jr	@@GETJ02
-@@GETJO1:
+	jr	.GETJ02
+.GETJO1:
 	ld	B,00000000b	;Select Joy 1 & Rst Pulse 1
-@@GETJ02:
-	ld	A,0Fh		;Reg F(15) PSG
-	out	[0A0h],A
-	in	A,[0A2h]	;Leo antes
+.GETJ02:
+	ld	A,0Fh		;Reg F[15] PSG
+	out	(0A0h),A
+	in	A,(0A2h)	;Leo antes
 	and	10111111b	;Vacio bit que quiero modificar.
 	or	B
-	out	[0A1h],A	;Select Joy
-	ld	A,0Eh		;Reg E(14) PSG
-	out	[0A0h],A
-	in	A,[0A2h]	;Cojo valores
+	out	(0A1h),A	;Select Joy
+	ld	A,0Eh		;Reg E[14] PSG
+	out	(0A0h),A
+	in	A,(0A2h)	;Cojo valores
 	cpl			;Paso a activos a 1
 	and	00111111b
-	ld	[HL],A
+	ld	(HL),A
 	ret

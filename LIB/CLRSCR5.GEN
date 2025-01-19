@@ -1,0 +1,36 @@
+; //////////////////////////////
+; ///////// CLRSCR5 ////////////
+; //////////////////////////////
+
+; Omple la pagina pantalla amb un color
+; COMPTE ! deja EI activat al marxar!
+
+; A = Pagina a omplir
+; B = Color
+
+; Cal RAM : VDPCOMDATA
+; Toca	  : C,IX,HL
+; Retorna : res
+; Usa fun.: _VDPCMD
+
+CLRSCR5:
+	; Copy Titulo-Logo
+	ld	IX,VDPCOMDATA
+	;ld	(IX+0),0	;SXL No es fa servir
+	;ld	(IX+1),0	;SXH No es fa servir
+	;ld	(IX+2),0	;SYL No es fa servir
+	;ld	(IX+3),0	;SYH No es fa servir
+	ld	(IX+4),0	;DXL Tota la pantalla Origen
+	ld	(IX+5),0	;DXH Per aquest cas SEMPRE 0
+	ld	(IX+6),0	;DYL Tota la pantalla Origen
+	ld	(IX+7),A	;DYH Page ve per A
+	ld	(IX+8),0	;INCXL Tota la pantalla
+	ld	(IX+9),1	;INCXH Per aquest cas SEMPRE 1 = 256 pixeles
+	ld	(IX+10),MAXY_SCREEN	;INCYL Tota la pantalla
+	ld	(IX+11),0	;INCYH Per aquest cas SEMPRE 0
+	ld	(IX+12),B	;COLO ve per B
+	ld	(IX+13),0	;ARG Per aquest cas SEMPRE 0
+	ld	(IX+14),CMDRECT	;CMD LMMV Fill Rectangle
+	ld	HL,VDPCOMDATA	; Envio CMD a fer
+	call	_VDPCMD
+	ret

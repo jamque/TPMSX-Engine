@@ -1,0 +1,55 @@
+; ////////////////////////////////
+; ///////// KEY2JOY ///////////////
+; ////////////////////////////////
+
+; Agafa els valors del teclat i els pasa a JOYSTICK
+
+; A = 	Valor retornat per MIRATECLA
+; HL =	Posicio variable JOY1
+
+; Cal RAM : res
+; Toca	  : res
+; Retorna : Posicio (HL) bits 5-0 [B/A/R/L/D/U] per 1
+; Usa fun.: res
+
+KEY2JOY:
+	cp	1		; Cursor ESQUERRA
+	jr	z,.LEFT
+	cp	2		; Cursor AMUNT
+	jr	z,.UP
+	cp	3		; Cursor ABALL
+	jr	z,.DOWN
+	cp	4		; Cursor DRETA
+	jr	z,.RIGHT
+	cp	6		; GRAPH -> Button B
+	jr	z,.BUTB
+	cp	32		; ESPAI -> Button A
+	jr	z,.BUTA
+	cp	77		; M -> Button B
+	jr	z,.BUTB
+	ret
+; Retorna : Posicio (HL) bits 5-0 [B/A/R/L/D/U] per 1
+.UP:
+	ld	A,00000001b
+	ld	(HL),A
+	ret
+.DOWN:
+	ld	A,00000010b
+	ld	(HL),A
+	ret
+.LEFT:
+	ld	A,00000100b
+	ld	(HL),A
+	ret
+.RIGHT:
+	ld	A,00001000b
+	ld	(HL),A
+	ret
+.BUTA:
+	ld	A,00010000b
+	ld	(HL),A
+	ret
+.BUTB:
+	ld	A,00100000b
+	ld	(HL),A
+	ret

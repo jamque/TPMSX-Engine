@@ -1,0 +1,111 @@
+; //////////////////////////////////////
+; ///////// _VDPCMD  ///////////////////
+; //////////////////////////////////////
+
+; Executa una comanda al VDP amb dades ordenades a punter HL
+
+; HL = Punter de dades de comanda
+;	(  SXL,  SXH,  SYL,  SYH,  DXL, DXH, DYL,DYH,
+;	 INCXL,INCXH,INCYL,INCYH, COLO, ARG, CMD)
+; DEIXA INTERRUPCIONS ACTIVADES AL ACABAR!
+
+; Cal RAM : res
+; Toca	  : BC,HL
+; Retorna : res
+; Usa fun.: res
+
+_VDPCMD:
+	; Bucle d'espera a bit CE
+	call	WAIT_CE
+	di
+	ld	A,20h	  ; Comanda inicia al Reg 20h
+	out	(099h),A
+	ld	A,80h+11h ; Reg 11h Ini. per enviar bytes seguits a Reg Seguits
+	out	(099h),A
+
+	ld	C,09Bh	  ; Port VDP per indirecte
+REPT 15
+	outi	 ; Reg 20h-2Eh
+ENDR
+	ei
+	; Bucle de espera a bit CE
+	call	WAIT_CE
+	ret
+
+; /////////////////////////////////////
+; ///////// WAIT_CE ///////////////////
+; /////////////////////////////////////
+
+; Espera a que el bit 0 del R2 de Status estigui a 0 per començar o acabar _VDPCOM
+
+WAIT_CE:
+	di
+	ld	A,02h	; Llegim el Reg 02h posant 2 a Reg 0Fh
+	m_SET_STATUS_REGISTER
+	in	A,(099h)
+	ld	B,A
+	xor	A	; retornem Reg 00h posant 0 a Reg 0Fh, Salva Interrup!
+	m_SET_STATUS_REGISTER
+	ei
+	ld	A,B
+	and	1
+	jp	nz,WAIT_CE
+	ret
+
+; //////////////////////////////////////
+; ///////// _VDPCMD_FAST  //////////////
+; //////////////////////////////////////
+
+; Executa una comanda al VDP amb dades ordenades a punter HL
+; No fa esperas al final de la comanda
+;   I si no pot fer-se perque esta ocupat el VDP, no ho fa
+
+; HL = Punter de dades de comanda
+;	(  SXL,  SXH,  SYL,  SYH,  DXL, DXH, DYL,DYH,
+;	 INCXL,INCXH,INCYL,INCYH, COLO, ARG, CMD)
+; CAL INTERRUPCIONS DESACTIVADES !
+
+; Cal RAM : res
+; Toca	  : BC,HL
+; Retorna : res
+; Usa fun.: res
+
+_VDPCMD_FAST:
+	; Bucle de espera a bit CE
+	call	IS_CE_READY
+	ret	nz		; Si esta ocupat no ho fa i marxa
+
+	ld	A,20h	  ; Comanda comença al Reg 20h
+	out	(099h),A
+	ld	A,80h+11h ; Reg 11h Ini. per enviar bytes seguits a Reg Seguits
+	out	(099h),A
+
+	ld	C,09Bh	  ; Port VDP per indirecte
+REPT 15
+	outi	; Reg 20h-2Eh
+ENDR
+	ret
+
+; //////////////////////////////////////
+; ///////// IS_CE_READY  ///////////////
+; //////////////////////////////////////
+
+; Mira si el bit 0 del R2 de Status estigui a 0 per  fer_VDPCOM
+
+; Cal RAM : res
+; Toca	  : res
+; Retorna : CY
+; Usa fun.: res
+
+IS_CE_READY:
+	ld	A,02h	; Llegim el Reg 02h posant 2 a Reg 0Fh
+	m_SET_STATUS_REGISTER
+	in	A,(099h)
+	ld	B,A
+	xor	A	; retornem Reg 00h posant 0 a Reg 0Fh, Salva Interrup!
+	m_SET_STATUS_REGISTER
+	ei
+	ld	A,B
+	and	1
+	ret
+

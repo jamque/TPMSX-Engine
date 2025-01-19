@@ -1,0 +1,6 @@
+;Variables de la Rutina de PLAYER v4.1
+ZMA_MAXVOICE		equ	2	; Max canals/veus
+ZMA_BUFFERSIZE		equ	117	; Mida en bytes de dades d'una canal
+
+ZMARAM:		ds	ZMA_BUFFERSIZE * ZMA_MAXVOICE
+ZMA_CURVOICE:	byte	; ID del ZMARAM que ha de sonar

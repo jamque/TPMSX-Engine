@@ -15,10 +15,10 @@ TIMERINI:
 	ld	HL,TIMER
 	ld	B,TIMEREND-TIMER
 	xor	A
-@@LOOP:
-	ld	[HL],A
+.LOOP:
+	ld	(HL),A
 	inc	HL
-	djnz	@@LOOP
+	djnz	.LOOP
 	
 	ret
 	
@@ -34,19 +34,19 @@ TIMERINI:
 TIMERUPDATE:
 	ld	HL,TIMER
 	ld	B,TIMEREND-TIMER
-@@LOOP:
-	ld	A,[HL]
+.LOOP:
+	ld	A,(HL)
 	or	A
-	jr	z,@@END
+	jr	z,.END
 	dec	A
-	ld	[HL],A	
-@@END:
+	ld	(HL),A
+.END:
 	inc	HL
-	djnz	@@LOOP
-	
+	djnz	.LOOP
+
 	ret
-	
-	
+
+
 ; //////////////////////////////////
 ; ///////// TIMERSET /////////////
 ; //////////////////////////////////
@@ -64,13 +64,13 @@ TIMERSET:
 	ld	D,0
 	ld	HL,TIMER
 	add	HL,DE	; Preparo punter per setejar el timer
-	ld	[HL],C
+	ld	(HL),C
 	pop	HL
 	pop	DE
-	
+
 	ret
-	
-	
+
+
 ; //////////////////////////////////
 ; ///////// TIMERCHECK /////////////
 ; //////////////////////////////////
@@ -87,58 +87,9 @@ TIMERCHECK:
 	ld	B,0
 	ld	HL,TIMER
 	add	HL,BC	; Preparo punter per verificar timer
-	ld	A,[HL]
+	ld	A,(HL)
 	or	A	; Seteja el Flag Z
 	pop	BC
 	pop	HL
-	
-	ret
 
-; //////////////////////////////
-; ///////// GETRND /////////////
-; //////////////////////////////
-; Genera un numero aleatori de 0 a 255
-; Cal RAM : TIMER
-; Toca	  : HL
-; Param   :
-; Retorna : A = RND % 256
-; Usa fun.: 
-; Original de : 
-; http://www.smspower.org/Development/RandomNumberGenerator
-GETRND:
-	push	HL
-        ld 	HL,[TIM_RND]
-        ld 	A,H		; get high byte
-        rrca		; rotate right by 2
-        rrca
-        xor 	H		; xor with original
-        rrca		; rotate right by 1
-        xor 	L		; xor with low byte
-        rrca		; rotate right by 4
-        rrca
-        rrca
-        rrca
-        xor	L		; xor again
-        rra		; rotate right by 1 through carry
-        adc 	HL,HL	; add TIM_RND to itself
-        jr	nz,@@ADD
-        ld	HL,733Ch    ; if last xor resulted in zero then re-seed random number generator
-@@ADD:
-	jp	TIM_RNDSEEDINIT_FROM_GET
-	
-; //////////////////////////////
-; ////// TIM_RNDSEEDINIT ///////
-; //////////////////////////////
-; Reinicia la semilla del random con el numero R
-; Si se llama en lugares que no siempre tarda lo mismo en pasar,
-;  queda bastante realista.
-TIM_RNDSEEDINIT:
-	push	HL
-	ld	HL,[TIM_RND]
-TIM_RNDSEEDINIT_FROM_GET:
-	ld	A,R         ; R = refresh register = semi-random number
-        xor	L          ; xor with l which is fairly random
-        ld 	[TIM_RND],HL
-	pop	HL
-	
 	ret

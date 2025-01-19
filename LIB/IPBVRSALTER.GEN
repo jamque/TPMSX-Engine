@@ -1,74 +1,75 @@
-; IPBVRSALTER
-; Interrupt put buffer videoram Sprite alternative
-; Rutina para poner en VRAM el buffer de atributos de sprite.
-; Va alternando el orden de subida de la tabla de sprites dejando SPR_FIJOS sin mover
-; Copia 128 bytes de RAM a VRAM
-; Supone VDP en puertos 98h, 99h
-; Requiere llamarse con interrupciones desactivadas
-; Entrada:
-;	HL -> Offset del buffer RAM de Atributos de Sprites. 
-; Salida:
-;	-
-; Modifica:
-;	BC,DE
-; Dependencias:
-; 	Usa Contantes : SPR_FIJOS de VIDEO.RAM
+; ////////////////////////////////
+; ///////// IPBVRS ///////////////
+; ////////////////////////////////
+
+; Interrupt put buffer videoram Sprite
+
+; HL = Offset del buffer
+; VOLCA buffer Sprite de 128 bytes A VRAM screen 1,2,3
+; Basat en IPBVRM
+
+; Cal RAM : res
+; Toca	  : B,C,D,E
+; Retorna : res
+; Usa fun.: res
+; Usa Contantes : SRP_FIJOS de VIDEO.RAM
+
 IPBVRSALTER:
 	ld	A,32
 	sla	A
 	sla	A
 	ld 	B,A		; Volcada de 32 Sprites
-	ld 	DE,VRM_SPA	; Prepara el punto de escritura 
-	ld 	A,E		; de atributos de Sprites en VRAM
-	out 	[99h],A
+	ld 	DE,VRM_SPA	; Prepara els ports per escritura a
+	ld 	A,E		; regio de Sprites de VRAM
+	out 	(99h),A
 	ld 	A,D
 	or 	40h
-	out 	[99h],A
-	ld 	C,98h		; Port a enviar del VDP (98h)
+	out 	(99h),A
+	ld 	C,98h		; Port a enviar del VDP [98h]
 	
-	ld	A,[TIMER_T]
+	ld	A,(TIMER_T)
 	and	1
 	cp	1
-	jr	z,@@INVERSO
+	jr	z,.INVERSO
 
 	; De Incremento
-				; Volcado de los atributos de SPRITES
-@@LOOP_OUT:
-	ld	A,[HL]
-	out	[C],A
+	; Volcat dels SPRITES
+	;otir
+.LOOP_OUT:
+	ld	A,(HL)
+	out	(C),A
 	inc	HL
-	djnz	@@LOOP_OUT
+	djnz	.LOOP_OUT
 	ret
 	; De decremento
-@@INVERSO:
-	ld	A,SPR_FIJOS*4
-	or	A
-	jp	z,@@INIT_INV	; Si es cero, pasamos a invertirlos todos
+.INVERSO:
+	ld	A,[SPR_FIJOS*4]	; Deja los primeros igual
 	ld	B,A
-
-@@LOOP_OUT_FIX:	; Deja los primeros igual
-	ld	A,[HL]
-	out	[C],A
+	;otir
+.LOOP_OUT_FIX:
+	ld	A,(HL)
+	out	(C),A
 	inc	HL
-	djnz	@@LOOP_OUT_FIX	
+	djnz	.LOOP_OUT_FIX
 
-	ld	DE,(31-SPR_FIJOS)*4	; 31, no 32, para irnos al ultimo sprite
-	add	HL,DE			;  sino nos iriamos fuera de la tabla
-@@INIT_INV:
-	ld	B,32-SPR_FIJOS
-@@LOOP:
+	ld	DE,[[31-SPR_FIJOS]*4]
+	add	HL,DE
+	ld	B,[32-SPR_FIJOS]
+.LOOP:
 	push	BC
 	ld	B,4
-@@LOOP_OUT_INV:
-	ld	A,[HL]
-	out	[C],A
+	;otir			; Volcat de 1 sprite [4bytes]
+.LOOP_OUT_INV:
+	ld	A,(HL)
+	out	(C),A
 	inc	HL
-	djnz	@@LOOP_OUT_INV
+	djnz	.LOOP_OUT_INV
 	
 	pop	BC
-	ld	DE,-8		; Retrocedemos 8 posiciones
-	add	HL,DE		; que es el srpite que acabamos de poner
-				; y el que queremos poner
-	djnz	@@LOOP
-@@IPBVRS_END:
+	ld	DE,-8		; Tirem enrrera 8 posicion
+	add	HL,DE		; que es l'sprite que acabem de posar
+				; i el que volem posar
+;	dec	HL		; 9 +1 pel otir que resta HL al acabar
+	djnz	.LOOP
+IPBVRS_END:
 	ret

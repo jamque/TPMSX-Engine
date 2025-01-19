@@ -1,0 +1,54 @@
+; ////////////////////////////////
+; ///////// SPRTLDPOS ////////////
+; ////////////////////////////////
+
+; SPRiTes pattern LoaD to POSition
+
+; CAL DI !
+
+; B = Sprites a pujar de 16x16
+; L = Num Patro inicial a fer el load a VRAM
+; DE = Punter dels patrons del Sprites
+
+; Cal ROM : res
+; Toca	  : B,HL,DE
+; Retorna : res
+; Usa fun.: IWBVRM
+
+SPRTLDPOS:
+	push	DE
+	; L * 32
+	ld	H,0			; *32 con acarreo (5 veces)
+	add	hl,hl			; la distancia al sprite
+	add	hl,hl			; que toca.
+	add	hl,hl
+	add	hl,hl
+	add	hl,hl
+	ld	DE,[VRM_SPP & 0FFFFh]
+	add	HL,DE
+	push	HL
+	pop	DE		; En DE direccio VRAM
+	pop	HL		; En HL direccio RAM
+	ld	A,VRM_SPP_HIGH	; Bits A16-A14
+	m_WRITE_DATA_REGISTER 0Eh	; Register 0Eh: VRAM access (VRAM address select, higher address lines)
+	ld 	A,E	; Bits A7-A0 de direccio VRAM
+	out 	(99h),A
+	ld 	A,D	; Bits A13-A8 de direccio VRAM
+	and	00111111b
+	or 	40h 		; Desired VRAM Direction (0=Reading, 1=Writing)
+	out 	(99h),A
+	ld 	C,98h
+	sla	B	; Multiplica * 8
+	sla	B
+	sla	B
+.COPY_VRAM:
+	outi
+	inc	B
+	outi
+	inc	B
+	outi
+	inc	B
+	outi
+	; Sin esperas del VDP. Es MSX2
+	jp	nz,.COPY_VRAM
+	ret
